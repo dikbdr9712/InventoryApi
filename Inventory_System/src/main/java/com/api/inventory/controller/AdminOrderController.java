@@ -1,6 +1,7 @@
 // AdminOrderController.java
 package com.api.inventory.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import com.api.inventory.dto.AdminOrderResponseDTO;
 import com.api.inventory.dto.VerificationRequestDTO;
 import com.api.inventory.service.AdminOrderService;
@@ -19,20 +20,22 @@ import java.util.List;
 @RequestMapping("/api/admin/orders")
 @RequiredArgsConstructor
 public class AdminOrderController {
-	@Autowired
+    @Autowired
     private AdminOrderService adminOrderService;
-	@Autowired
-	private OrderService orderService;
+    @Autowired
+    private OrderService orderService;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('orders.view')")
     public ResponseEntity<List<AdminOrderResponseDTO>> getAllOrders() {
         return ResponseEntity.ok(adminOrderService.getAllOrdersForAdmin());
     }
 
     @PostMapping("/{orderId}/confirm")
+    @PreAuthorize("hasAuthority('orders.fulfil')")
     public ResponseEntity<Void> confirmOrder(@PathVariable Long orderId) {
         String updatedBy = getCurrentUserEmail();
-        
+
         VerificationRequestDTO dto = new VerificationRequestDTO();
         dto.setStatus("CONFIRMED");
         dto.setNote("Confirmed via admin quick-action");
@@ -42,7 +45,7 @@ public class AdminOrderController {
 
         return ResponseEntity.ok().build();
     }
-    
+
     private String getCurrentUserEmail() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
@@ -55,12 +58,14 @@ public class AdminOrderController {
     }
 
     @PostMapping("/{orderId}/cancel")
+    @PreAuthorize("hasAuthority('orders.fulfil')")
     public ResponseEntity<Void> cancelOrder(@PathVariable Long orderId) {
         adminOrderService.cancelOrder(orderId);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/{orderId}/complete")
+    @PreAuthorize("hasAuthority('orders.fulfil')")
     public ResponseEntity<Void> completeOrder(@PathVariable Long orderId) {
         adminOrderService.completeOrder(orderId);
         return ResponseEntity.ok().build();

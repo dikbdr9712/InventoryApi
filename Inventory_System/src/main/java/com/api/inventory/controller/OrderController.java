@@ -51,37 +51,42 @@ public class OrderController {
     private ItemMasterRepository itemMasterRepository;
 
     @PostMapping("/pos/sale")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','CASHIER')")
+    @PreAuthorize("hasAuthority('pos.use')")
     public ResponseEntity<Order> createInPersonSale(@RequestBody PosSaleRequestDTO request) {
         Order order = orderService.createInPersonSale(request);
         return ResponseEntity.ok(order);
     }
 
     @PostMapping
+    @PreAuthorize("isAuthenticated()")
     public Order createOrder(@RequestBody OrderRequestDTO dto) {
         return orderService.createOrder(dto);
     }
 
     @PostMapping("/{orderId}/cancel")
+    @PreAuthorize("isAuthenticated()")
     public void cancelOrder(@PathVariable Long orderId) {
         orderService.cancelOrder(orderId);
     }
 
     @GetMapping("/customer/{email}")
+    @PreAuthorize("isAuthenticated()")
     public List<OrderResponseDTO> getOrdersByCustomer(@PathVariable String email) {
         List<Order> orders = orderService.getOrdersByCustomerEmail(email);
         return orders.stream()
-                     .map(OrderResponseDTO::fromEntity)
-                     .toList();
+                .map(OrderResponseDTO::fromEntity)
+                .toList();
     }
 
     @GetMapping("/{orderId}/items")
+    @PreAuthorize("isAuthenticated()")
     public List<OrderItemResponseDTO> getOrderItems(@PathVariable Long orderId) {
         return orderService.getOrderItemsByOrderId(orderId);
     }
 
     // ✅ FIXED: Now returns OrderResponseDTO instead of Order
     @GetMapping("/{orderId}")
+    @PreAuthorize("isAuthenticated()")
     public OrderResponseDTO getOrderById(@PathVariable Long orderId) {
         Order order = orderService.getOrderById(orderId);
         return OrderResponseDTO.fromEntity(order);
@@ -89,12 +94,14 @@ public class OrderController {
 
     // ⚠️ Note: This path overlaps with base /api/orders — consider removing "/orders"
     @PostMapping("/{orderId}/confirm-payment")
+    @PreAuthorize("hasAuthority('payments.verify')")
     public ResponseEntity<Void> confirmPayment(@PathVariable Long orderId) {
         orderService.confirmPayment(orderId);
         return ResponseEntity.ok().build();
     }
 
     @PutMapping("/{orderId}/verify")
+    @PreAuthorize("hasAuthority('payments.verify')")
     public ResponseEntity<Order> verifyOrder(
             @PathVariable Long orderId,
             @RequestBody VerificationRequestDTO request) {
@@ -138,9 +145,9 @@ public class OrderController {
         // Send email only on CONFIRMED
         if ("CONFIRMED".equals(request.getStatus())) {
             emailService.sendEmail(
-                order.getCustomerEmail(),
-                "Your Order #" + order.getOrderId() + " is Confirmed!",
-                "Thank you! Your payment has been verified. We’ll process your order shortly."
+                    order.getCustomerEmail(),
+                    "Your Order #" + order.getOrderId() + " is Confirmed!",
+                    "Thank you! Your payment has been verified. We’ll process your order shortly."
             );
         }
 
@@ -178,6 +185,7 @@ public class OrderController {
     }
 
     @PostMapping("/{orderId}/confirm")
+    @PreAuthorize("hasAuthority('orders.fulfil')")
     public ResponseEntity<Order> confirmOrder(@PathVariable Long orderId) {
         String updatedBy = getCurrentUserEmail();
         Order order = orderService.findById(orderId);
@@ -202,15 +210,16 @@ public class OrderController {
         Order updatedOrder = orderService.save(order);
 
         emailService.sendEmail(
-            order.getCustomerEmail(),
-            "Your Order #" + order.getOrderId() + " is Confirmed!",
-            "Thank you! Your payment has been verified. We’ll process your order shortly."
+                order.getCustomerEmail(),
+                "Your Order #" + order.getOrderId() + " is Confirmed!",
+                "Thank you! Your payment has been verified. We’ll process your order shortly."
         );
 
         return ResponseEntity.ok(updatedOrder);
     }
 
     @PostMapping("/{orderId}/ship")
+    @PreAuthorize("hasAuthority('orders.fulfil')")
     public ResponseEntity<Void> shipOrder(@PathVariable Long orderId) {
         String currentUser = getCurrentUserEmail();
         orderService.shipOrder(orderId, currentUser); // ✅ 2 args
@@ -218,21 +227,15 @@ public class OrderController {
     }
 
     @PostMapping("/{orderId}/complete")
+    @PreAuthorize("hasAuthority('orders.fulfil')")
     public ResponseEntity<Void> completeOrder(@PathVariable Long orderId) {
         orderService.completeOrder(orderId);
         return ResponseEntity.ok().build();
     }
 
     @GetMapping("/status/{status}")
+    @PreAuthorize("hasAuthority('payments.verify')")
     public List<OrderVerificationDTO> getOrdersForVerification(@PathVariable String status) {
         return orderService.getOrdersForVerification(status);
-    }
-
-    @GetMapping("/api/test-auth")
-    public String testAuth() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null) return "❌ Not authenticated";
-        if (!auth.isAuthenticated()) return "❌ Not authenticated";
-        return "✅ Logged in as: " + auth.getName();
     }
 }

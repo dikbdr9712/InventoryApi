@@ -1,9 +1,10 @@
 package com.api.inventory.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import com.api.inventory.dto.PaymentRequestDTO;
 import com.api.inventory.entity.Payment;
 import com.api.inventory.service.PaymentService;
-import com.api.inventory.service.OrderService; 
+import com.api.inventory.service.OrderService;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,13 +15,14 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/payments")
 @RequiredArgsConstructor
 public class PaymentController {
-	@Autowired
+    @Autowired
     private PaymentService paymentService;
-	@Autowired 
+    @Autowired
     private OrderService orderService;
 
     // ✅ Create a new payment (called after user selects payment method)
     @PostMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Payment> createPayment(@RequestBody PaymentRequestDTO dto) {
         Payment payment = paymentService.createPayment(dto);
         return ResponseEntity.ok(payment);
@@ -28,6 +30,7 @@ public class PaymentController {
 
     // ✅ Update payment status (optional: if you want to manually update later)
     @PutMapping("/{paymentId}/status")
+    @PreAuthorize("hasAuthority('payments.verify')")
     public ResponseEntity<Payment> updatePaymentStatus(
             @PathVariable Long paymentId,
             @RequestParam String status) {
@@ -37,7 +40,8 @@ public class PaymentController {
 
     // ✅ Get payment by order ID (useful for admin or customer view)
     @GetMapping("/order/{orderId}")
-    
+
+    @PreAuthorize("hasAnyAuthority('payments.verify','orders.view')")
     public ResponseEntity<Payment> getPaymentByOrderId(@PathVariable Long orderId) {
         System.out.println("Fetching payment for order ID: " + orderId);
         Payment payment = paymentService.findByOrderId(orderId);
@@ -49,8 +53,9 @@ public class PaymentController {
             return ResponseEntity.notFound().build();
         }
     }
-    
+
     @PostMapping("/{paymentId}/confirm") // ← Fixed path (removed duplicate /payments/)
+    @PreAuthorize("hasAuthority('payments.verify')")
     public ResponseEntity<?> confirmPayment(@PathVariable Long paymentId) {
         try {
             // Get payment

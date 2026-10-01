@@ -18,12 +18,12 @@ public class PosController {
     private OrderService orderService;
 
     @GetMapping("/history")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','CASHIER')")
+    @PreAuthorize("hasAuthority('pos.use')")
     public ResponseEntity<List<PosSaleResponseDTO>> getPosSalesHistory() {
         List<Order> orders = orderService.getPosSales();
         List<PosSaleResponseDTO> dtos = orders.stream()
-            .map(this::convertToDto)
-            .toList();
+                .map(this::convertToDto)
+                .toList();
         return ResponseEntity.ok(dtos);
     }
 

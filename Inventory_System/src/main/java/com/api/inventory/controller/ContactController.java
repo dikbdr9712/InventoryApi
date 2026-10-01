@@ -2,6 +2,7 @@
 
 package com.api.inventory.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import com.api.inventory.entity.ContactMessage;
 import com.api.inventory.repository.ContactMessageRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,7 +13,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/contact")
-@CrossOrigin(origins = "http://127.0.0.1:5500") // adjust to your frontend URL
 public class ContactController {
 
     @Autowired
@@ -25,6 +25,7 @@ public class ContactController {
     }
 
     @GetMapping("/all")
+    @PreAuthorize("hasAuthority('messages.view')")
     public List<ContactMessage> getAllMessages() {
         return repository.findAll();
     }
