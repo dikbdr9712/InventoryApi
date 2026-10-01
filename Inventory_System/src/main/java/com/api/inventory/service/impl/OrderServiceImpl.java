@@ -61,33 +61,68 @@ public class OrderServiceImpl implements OrderService {
 	        throw new IllegalArgumentException("At least one item is required");
 	    }
 
-	    // 1. Calculate SUBTOTAL
-	    BigDecimal subtotal = BigDecimal.ZERO;
+	    BigDecimal subtotalBeforeDiscount = BigDecimal.ZERO; // MRP-based total
+	    BigDecimal totalAfterDiscount = BigDecimal.ZERO;     // Final price total
+	    BigDecimal totalDiscountAmount = BigDecimal.ZERO;   // ← What we'll save
+	    List<OrderItem> orderItemsToSave = new ArrayList<>();
+
 	    for (ItemQty item : request.getItems()) {
 	        ItemMaster master = itemMasterRepository.findById(item.getItemId())
 	                .orElseThrow(() -> new RuntimeException("Item not found: " + item.getItemId()));
-	        if (master.getSellingPrice() == null) {
-	            throw new IllegalStateException("Price missing for item: " + master.getItemName());
-	        }
+
 	        InventoryStock stock = inventoryStockRepository.findByItemId(item.getItemId())
 	                .orElseThrow(() -> new RuntimeException("Stock not initialized"));
 	        if (stock.getCurrentQuantity() < item.getQuantity()) {
 	            throw new IllegalStateException("Insufficient stock for item: " + master.getItemName());
 	        }
-	        subtotal = subtotal.add(master.getSellingPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
+
+	        // Get MRP (from request or DB)
+	        BigDecimal mrp = (item.getMrp() != null && item.getMrp().compareTo(BigDecimal.ZERO) > 0)
+	                ? item.getMrp()
+	                : master.getMrp();
+
+	        BigDecimal discountPercent = (item.getDiscountPercent() != null)
+	                ? item.getDiscountPercent()
+	                : BigDecimal.ZERO;
+
+	        // Compute unit price after discount
+	        BigDecimal unitPrice;
+	        if (mrp != null && mrp.compareTo(BigDecimal.ZERO) > 0) {
+	            BigDecimal discountMultiplier = BigDecimal.ONE
+	                .subtract(discountPercent.divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP));
+	            unitPrice = mrp.multiply(discountMultiplier).setScale(2, RoundingMode.HALF_UP);
+	        } else {
+	            unitPrice = master.getSellingPrice() != null ? master.getSellingPrice() : BigDecimal.ZERO;
+	        }
+
+	        if (unitPrice.compareTo(BigDecimal.ZERO) <= 0) {
+	            throw new IllegalStateException("Invalid price for item: " + master.getItemName());
+	        }
+
+	        // Calculate line totals
+	        BigDecimal lineMrpTotal = (mrp != null ? mrp : BigDecimal.ZERO)
+	                .multiply(BigDecimal.valueOf(item.getQuantity()));
+	        BigDecimal lineFinalTotal = unitPrice.multiply(BigDecimal.valueOf(item.getQuantity()));
+	        BigDecimal lineDiscount = lineMrpTotal.subtract(lineFinalTotal);
+
+	        subtotalBeforeDiscount = subtotalBeforeDiscount.add(lineMrpTotal);
+	        totalAfterDiscount = totalAfterDiscount.add(lineFinalTotal);
+	        totalDiscountAmount = totalDiscountAmount.add(lineDiscount);
+
+	        // Save order item
+	        OrderItem orderItem = new OrderItem();
+	        orderItem.setItemId(item.getItemId());
+	        orderItem.setQuantity(item.getQuantity());
+	        orderItem.setUnitPrice(unitPrice);
+	        orderItemsToSave.add(orderItem);
 	    }
 
-	    // 2. Apply discount
-	    BigDecimal discountTotal = (request.getDiscountTotal() != null) 
-	        ? request.getDiscountTotal() 
-	        : BigDecimal.ZERO;
-	    if (discountTotal.compareTo(subtotal) > 0) discountTotal = subtotal;
-	    BigDecimal amountAfterDiscount = subtotal.subtract(discountTotal);
+	    // No additional order-level discount in POS
+	    BigDecimal amountAfterDiscount = totalAfterDiscount;
 
-	    // 3. Calculate TOTAL TAX and prepare tax details
+	    // Calculate TAX on discounted amount
 	    BigDecimal totalTax = BigDecimal.ZERO;
 	    List<TaxDetail> taxDetailsToSave = new ArrayList<>();
-
 	    if (request.getTaxes() != null) {
 	        for (TaxInfoDTO taxInfo : request.getTaxes()) {
 	            if (taxInfo.getRate() != null && taxInfo.getRate() > 0) {
@@ -95,10 +130,8 @@ public class OrderServiceImpl implements OrderService {
 	                BigDecimal taxAmount = amountAfterDiscount
 	                    .multiply(rate)
 	                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-	                
 	                totalTax = totalTax.add(taxAmount);
 
-	                // 👇 Prepare TaxDetail object (will be saved later)
 	                TaxDetail detail = new TaxDetail();
 	                detail.setTaxType(taxInfo.getType());
 	                detail.setRate(rate);
@@ -108,10 +141,10 @@ public class OrderServiceImpl implements OrderService {
 	        }
 	    }
 
-	    // 4. Final total
+	    // Final total = discounted amount + tax
 	    BigDecimal finalTotal = amountAfterDiscount.add(totalTax);
 
-	    // 5. Create and save ORDER
+	    // Save ORDER
 	    Order order = new Order();
 	    order.setCustomerName(request.getCustomerName());
 	    order.setCustomerPhone(request.getCustomerPhone());
@@ -120,36 +153,31 @@ public class OrderServiceImpl implements OrderService {
 	    order.setPaymentStatus("PAID");
 	    order.setSource("POS");
 	    order.setTotalAmount(finalTotal);
-	    order.setDiscountAmount(discountTotal);
-	    order.setTaxAmount(totalTax); // still keep total for reporting
+	    order.setDiscountAmount(totalDiscountAmount); // ✅ Now stores real discount!
+	    order.setTaxAmount(totalTax);
 	    order.setCreatedAt(LocalDateTime.now());
 	    order.setUpdatedAt(LocalDateTime.now());
 
 	    Order savedOrder = orderRepository.save(order);
 
-	    // 6. ✅ Link and save tax details
+	    // Save tax details
 	    for (TaxDetail detail : taxDetailsToSave) {
-	        detail.setOrder(savedOrder); // link to order
+	        detail.setOrder(savedOrder);
 	    }
 	    taxDetailRepository.saveAll(taxDetailsToSave);
 
-	    // 7. Save order items & deduct stock (unchanged)
-	    for (ItemQty item : request.getItems()) {
-	        ItemMaster master = itemMasterRepository.findById(item.getItemId()).get();
-	        OrderItem orderItem = new OrderItem();
+	    // Save order items, deduct stock, create transactions
+	    for (OrderItem orderItem : orderItemsToSave) {
 	        orderItem.setOrderId(savedOrder.getOrderId());
-	        orderItem.setItemId(item.getItemId());
-	        orderItem.setQuantity(item.getQuantity());
-	        orderItem.setUnitPrice(master.getSellingPrice());
 	        orderItemRepository.save(orderItem);
 
-	        inventoryStockRepository.adjustStockByDelta(item.getItemId(), -item.getQuantity());
+	        inventoryStockRepository.adjustStockByDelta(orderItem.getItemId(), -orderItem.getQuantity());
 
 	        Transaction tx = new Transaction();
-	        tx.setItemId(item.getItemId());
+	        tx.setItemId(orderItem.getItemId());
 	        tx.setTransactionType("SALE");
-	        tx.setQuantity(item.getQuantity());
-	        tx.setUnitPrice(master.getSellingPrice());
+	        tx.setQuantity(orderItem.getQuantity());
+	        tx.setUnitPrice(orderItem.getUnitPrice());
 	        tx.setCustomerOrSupplier(request.getCustomerName());
 	        tx.setReferenceId(savedOrder.getOrderId());
 	        tx.setReferenceType("POS_SALE");

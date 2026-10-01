@@ -1,11 +1,110 @@
+/* === Base Table Styles === */
+*{
+  margin: 0px;
+  padding: 0px;
+}
 .role-badge {
-      font-size: 0.85em;
-      padding: 0.3em 0.6em;
-    }
-    .table th {
-      background-color: #f8f9fa;
-    }
-    .spinner {
-      width: 1rem;
-      height: 1rem;
-    }
+  font-size: 0.85em;
+  padding: 0.3em 0.6em;
+}
+.table th {
+  background-color: #f8f9fa;
+}
+.spinner {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* === Mobile-First Responsive Table === */
+#users-table {
+  width: 100%;
+  font-size: 1rem;
+}
+
+/* Default cell styling */
+#users-table th,
+#users-table td {
+  white-space: normal;
+  word-break: break-word;
+  padding: 0.5rem;
+}
+
+/* === TIGHT MOBILE USER LIST (FIXED SPACING & WRAPPING) === */
+@media (max-width: 767px) {
+  #users-table {
+    font-size: 0.875rem;
+  }
+
+  /* Reset table to behave like a clean list */
+  #users-table thead { display: none; }
+  #users-table tbody tr {
+    display: block;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid #f1f1f1;
+  }
+
+  #users-table td {
+    display: block;
+    padding: 0.2rem 0;
+    margin: 0;
+    white-space: normal;
+    word-break: keep-all; /* prevents "Ghalleys" → "Gha\nlleys" */
+  }
+
+  /* Label: inline, bold, no line break */
+  #users-table td::before {
+    content: attr(data-label) ": ";
+    font-weight: 600;
+    color: #343a40;
+    margin-right: 0.25rem;
+  }
+
+  /* Make name/email stay on one line if possible */
+  #users-table td.name,
+  #users-table td.email {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  /* Actions: compact horizontal */
+  #users-table td.actions {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding-top: 0.3rem;
+  }
+
+  .role-select {
+    font-size: 0.75rem;
+    padding: 0.15rem 0.3rem;
+    min-width: 80px;
+  }
+  .btn-sm {
+    padding: 0.15rem 0.25rem;
+    font-size: 0.65rem;
+  }
+  .badge {
+    font-size: 0.65rem;
+    padding: 0.15em 0.3em;
+  }
+}
+
+/* Ensure table container allows smooth scrolling if needed (fallback) */
+.container{
+  margin: 0px;
+  padding: 0px;
+}
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.card {
+  margin: 0;
+  border: none;
+  padding: 0;
+}
+.mb-4 {
+  padding-top: 1rem;
+}

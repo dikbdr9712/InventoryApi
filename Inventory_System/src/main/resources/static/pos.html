@@ -2,54 +2,71 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Point of Sale (Counter Sales)</title>
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
-  <script src="https://kit.fontawesome.com/33616e440d.js"crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="../css/pos.css">
-  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/pos.css">
+   <!-- Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </head>
 <body>
-    <!-- Navigation Bar -->
+  <!-- Navigation Bar -->
+  <!-- Navigation Bar -->
   <nav class="navbar navbar-expand-md navbar-light bg-white shadow-sm">
-      <a class="navbar-brand" href="Index.html">
-        <img src="../Images/Websites logo(Online).png" class="Logo" alt="Logo" />
-      </a>
-
-      <button
-        class="navbar-toggler"
-        type="button"
-        data-toggle="collapse"
-        data-target="#navbarNav"
-        aria-controls="navbarNav"
-        aria-expanded="false"
-        aria-label="Toggle navigation"
-      >
-        <span class="navbar-toggler-icon"></span>
-      </button>
-
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ml-auto">
-          <li class="nav-item">
-            <a class="nav-link text-dark font-weight-bold" href="Index.html">Home</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link text-dark" href="Services.html">Services</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link text-dark" href="Product.html">Products</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link text-dark" href="orders.html">My Order</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link text-dark" href="Contact.html">Contact Us</a>
-          </li>
-          <li class="nav-item">
-            <a id="loginLink" class="nav-link text-dark" href="login.html">Login / Register</a>
-          </li>
-        </ul>
-      </div>
+    <button
+      class="navbar-toggler"
+      type="button"
+      data-toggle="collapse"
+      data-target="#navbarNav"
+      aria-controls="navbarNav"
+      aria-expanded="false"
+      aria-label="Toggle navigation"
+    >
+      <span class="navbar-toggler-icon"></span>
+    </button>
+        <a class="navbar-brand" href="Index.html">
+      <img src="../Images/Websites logo(Online).png" class="Logo" alt="Logo" />
+    </a>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item"><a class="nav-link text-dark font-weight-bold" href="Index.html">Home</a></li>
+        <li class="nav-item"><a class="nav-link text-dark" href="Services.html">Services</a></li>
+        <li class="nav-item"><a class="nav-link text-dark" href="Product.html">Products</a></li>
+        <li class="nav-item"><a class="nav-link text-dark" href="orders.html">My Order</a></li>
+        <li class="nav-item"><a class="nav-link text-dark" href="Contact.html">Contact Us</a></li>
+        <li class="nav-item"><a id="loginLink" class="nav-link text-dark" href="login.html">Login / Register</a></li>
+      </ul>
+    </div>
   </nav>
+  <!-- Overlay Mobile Menu (Slide-in from left) -->
+  <div id="slideNav" class="slide-nav">
+    <div class="slide-nav-header">
+      <a class="navbar-brand" href="profile.html"><img src="../Images/ProfileIcone.png" class="Logo" alt="Logo" /></a>
+      <button class="slide-close">&times;</button>
+    </div>
+    <ul class="slide-nav-links">
+      <li><a href="Index.html">Home</a></li>
+      <li><a href="Services.html">Services</a></li>
+      <li><a href="Product.html">Products</a></li>
+      <li><a href="orders.html">My Order</a></li>
+      <li><a href="Contact.html">Contact Us</a></li>
+      <li><a id="slideLoginLink" href="login.html">Login / Register</a></li>
+      <!-- Admin section (hidden by default) -->
+      <li id="slideAdminSection" style="display: none;">
+        <strong class="px-3 mt-3 d-block text-muted"><b>ADMIN</b></strong>
+        <a href="pos.html"><i class="fas fa-shopping-cart mr-2"></i> Point of Sale</a>
+        <a href="pos-history.html"><i class="fas fa-history mr-2"></i> POS Sales History</a>
+        <a href="SalesDashboard.html"><i class="fas fa-chart-line mr-2"></i> Sales Dashboard</a>
+        <a href="order-list.html"><i class="fas fa-list mr-2"></i> Order List</a>
+        <a href="OrderVerification.html"><i class="fas fa-check-circle mr-2"></i> Verify Payments</a>
+        <a href="users.html"><i class="fas fa-user mr-2"></i> User Management</a>
+      </li>
+    </ul>
+  </div>
+
   <div class="container mt-4">
     <h2>🛒 Point of Sale (Counter Sales)</h2>
 
@@ -63,16 +80,10 @@
       </div>
     </div>
 
-     <!-- Item Search -->
+    <!-- Item Search -->
     <div class="mb-3 search-container">
       <div class="input-group">
-        <input 
-          type="text" 
-          id="itemSearch" 
-          class="form-control" 
-          placeholder="🔍 Search item by name or code..." 
-          autocomplete="off"
-        >
+        <input type="text" id="itemSearch" class="form-control" placeholder="🔍 Search item by name or code..." autocomplete="off">
         <button id="clearSearchBtn" class="clear-search-btn" title="Clear search" style="display:none;">
           <i class="fas fa-times"></i>
         </button>
@@ -91,13 +102,10 @@
           <option value="CASH">Cash</option>
         </select>
       </div>
-
       <div class="col-md-8">
         <label>Taxes & Discounts</label>
         <div class="d-flex align-items-center">
-          <div id="taxBuilder" class="d-flex flex-wrap align-items-center mr-2">
-            <!-- Dynamically added tax components will go here -->
-          </div>
+          <div id="taxBuilder" class="d-flex flex-wrap align-items-center mr-2"></div>
           <button type="button" id="addTaxBtn" class="btn btn-outline-secondary btn-sm">+ Add Tax</button>
         </div>
       </div>
@@ -109,7 +117,7 @@
         <tr>
           <th>Item</th>
           <th>Qty</th>
-          <th>Price</th>
+          <th>MRP</th>
           <th>Discount %</th>
           <th>Total</th>
           <th>Action</th>
@@ -139,6 +147,7 @@
         </tr>
       </tfoot>
     </table>
+
     <!-- Cash Payment Change Calculator -->
     <div id="cashChangeSection" class="mb-3 d-none">
       <div class="row">
@@ -163,24 +172,30 @@
   <div class="modal fade" id="invoiceModal" tabindex="-1" aria-labelledby="invoiceModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="invoiceModalLabel">📄 Invoice Preview</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
         <div class="modal-body" id="invoicePreview">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
           <!-- Generated invoice will appear here -->
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
           <button type="button" id="downloadInvoice" class="btn btn-primary">📥 Download PDF</button>
         </div>
       </div>
     </div>
   </div>
-    <script src="../js/authNav.js"></script>
-    <script src="../js/pos.js"></script>
-     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+
+  <!-- Scripts -->
+  <script src="../js/authNav.js"></script>
+  <script src="../js/Hamb.js"></script>
+  <script src="../js/pos.js"></script>
+  <script src="https://kit.fontawesome.com/33616e440d.js" crossorigin="anonymous"></script>
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+    <!-- jsPDF & html2canvas -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </body>
 </html>

@@ -1,17 +1,27 @@
-const hamburgerButton = document.querySelector('.navbar-toggler'); // ✅ Gets the first matching element
-const codeEditor = document.getElementById('navbarNav');
-let isIntelliSenseVisible = false;
+document.addEventListener('DOMContentLoaded', () => {
+  const hamburger = document.querySelector('.navbar-toggler');
+  const slideNav = document.getElementById('slideNav');
+  const closeBtn = document.querySelector('.slide-close');
 
-if (hamburgerButton && codeEditor) {
-  hamburgerButton.addEventListener('click', () => {
-    isIntelliSenseVisible = !isIntelliSenseVisible;
-    
-    if (isIntelliSenseVisible) {
-      codeEditor.style.display = 'block';
-    } else {
-      codeEditor.style.display = 'none';
-    }
+  const toggleSlideNav = () => {
+    slideNav.classList.toggle('active');
+    // Optional: prevent scrolling behind overlay
+    document.body.style.overflow = slideNav.classList.contains('active') ? 'hidden' : '';
+  };
+
+  if (hamburger) {
+    hamburger.addEventListener('click', toggleSlideNav);
+  }
+
+  if (closeBtn) {
+    closeBtn.addEventListener('click', toggleSlideNav);
+  }
+
+  // Close on link click (optional but recommended)
+  slideNav.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', () => {
+      slideNav.classList.remove('active');
+      document.body.style.overflow = '';
+    });
   });
-} else {
-  console.warn('Hamburger button or navbar (navbarNav) not found in DOM.');
-}
+});

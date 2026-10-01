@@ -1,67 +1,102 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-    <!-- <link rel="stylesheet" type="text/css" href="style.css" /> -->
-    <link rel="stylesheet" type="text/css" href="../css/contact.css" />
-    <link rel="stylesheet" href="../css/style.css">
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DK/Phar Inventory Management System</title>
+  
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" />
+  
+  <!-- Your Custom CSS -->
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="stylesheet" href="../css/Contact.css" />
 </head>
-<script src="https://kit.fontawesome.com/15517e558e.js" crossorigin="anonymous"></script>
-<script src="https://kit.fontawesome.com/d6b7ead31f.js" crossorigin="anonymous"></script>
-<script src="../js/authNav.js"></script>
 
 <body>
 
-      <!-- Hamburger Navigation Bar -->
-      <nav class="navbar navbar-expand-md navbar-light bg-white shadow-sm">
-        <a class="navbar-brand" href="Index.html"><img src="../Images/Websites logo(Online).png" class="Logo" alt=""></a>
-        <!-- Hamburger Icon -->
-        <button
-          class="navbar-toggler"
-          type="button"
-          data-toggle="collapse"
-          data-target="#navbarNav"
-          aria-controls="navbarNav"
-          aria-expanded="false"
-          aria-label="Toggle navigation"
-        >
-          <span class="navbar-toggler-icon"></span>
-        </button>
-  
-        <!-- Nav Items -->
-        <div class="collapse navbar-collapse" id="navbarNav">
-          <ul class="navbar-nav ml-auto">
-            <li class="nav-item " ><a class="nav-link text-dark" href="Index.html">Home</a></li>
-            <li class="nav-item"><a class="nav-link text-dark" href="Services.html">Services</a></li>
-            <li class="nav-item"><a class="nav-link text-dark" href="Product.html">Product</a></li>
-            <li class="nav-item"><a class="nav-link text-dark" href="orders.html">My Orders</a></li>
-            <li class="nav-item"><a class="nav-link text-dark" href="Contact.html"><b>Contact Us</b></a></li>
-            <li class="nav-item"><a id="loginLink"  class="nav-link text-dark" href="login.html">Login / Register</a></li>
-          </ul>
-        </div>
-      </nav>
-  
-      <!-- Include Bootstrap JS (jQuery and Popper.js are required dependencies) -->
-      <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-      <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
-      <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
-       
-    <div class="container my-5">
+  <!-- Navigation Bar -->
+  <nav class="navbar navbar-expand-md navbar-light bg-white shadow-sm">
+    <button
+      class="navbar-toggler"
+      type="button"
+      data-toggle="collapse"
+      data-target="#navbarNav"
+      aria-controls="navbarNav"
+      aria-expanded="false"
+      aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <a class="navbar-brand" href="Index.html">
+      <img src="../Images/Websites logo(Online).png" class="Logo" alt="Logo" />
+    </a>
+
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item">
+          <a class="nav-link text-dark font-weight-bold" href="Index.html">Home</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="Services.html">Services</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="Product.html">Products</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="orders.html">My Order</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-dark" href="Contact.html"><b>Contact Us</b></a>
+        </li>
+        <li class="nav-item">
+          <a id="loginLink" class="nav-link text-dark" href="login.html">Login / Register</a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Overlay Mobile Menu (Slide-in from left) -->
+  <div id="slideNav" class="slide-nav">
+    <div class="slide-nav-header">
+      <a class="navbar-brand" href="profile.html">
+        <img src="../Images/ProfileIcone.png" class="Logo" alt="Logo" />
+      </a>
+      <button class="slide-close">&times;</button>
+    </div>
+    <ul class="slide-nav-links">
+      <li><a href="Index.html">Home</a></li>
+      <li><a href="Services.html">Services</a></li>
+      <li><a href="Product.html">Products</a></li>
+      <li><a href="orders.html">My Order</a></li>
+      <li><a href="Contact.html">Contact Us</a></li>
+      <li><a id="slideLoginLink" href="login.html">Login / Register</a></li>
+      <!-- Admin section (hidden by default) -->
+      <li id="slideAdminSection" style="display: none;">
+        <strong class="px-3 mt-3 d-block text-muted"><b>ADMIN</b></strong>
+        <a href="pos.html"><i class="fas fa-shopping-cart mr-2"></i> Point of Sale</a>
+        <a href="pos-history.html"><i class="fas fa-history mr-2"></i> POS Sales History</a>
+        <a href="SalesDashboard.html"><i class="fas fa-chart-line mr-2"></i> Sales Dashboard</a>
+        <a href="order-list.html"><i class="fas fa-list mr-2"></i> Order List</a>
+        <a href="OrderVerification.html"><i class="fas fa-check-circle mr-2"></i> Verify Payments</a>
+        <a href="users.html"><i class="fas fa-user mr-2"></i> User Management</a>
+      </li>
+    </ul>
+  </div>
+
+  <div class="container my-5">
     <h3 class="text-center mb-4" id="ContactUs">Contact Us</h3>
 
-  <div class="row">
-    <!-- Contact Info (Left Column) -->
-      <div class="col-lg-5 mb-4 mb-lg-0">
-        <div id="innerinfoContainer" class="p-4 bg-light rounded h-100">
+    <div class="row g-0">
+      <!-- Contact Info (Left Column) -->
+      <div class="col-12 col-lg-5 px-0 px-lg-2 mb-4 mb-lg-0">
+        <div id="innerinfoContainer" class="p-3 p-lg-4 bg-light rounded h-100">
           <h5>Inventory System Management</h5>
-
           <p><strong>Contact No:</strong><br />77269712 / 17941806 / 77803506</p>
           <p><strong>Email:</strong><br />dikbdrghalley12@gmail.com</p>
           <p><strong>Address:</strong><br />Thimphu, Bhutan</p>
           <p><strong>Type:</strong><br />Commercial</p>
 
-          <!-- 👇 Conditional Button for Admin/Manager -->
+          <!-- Conditional Button for Admin/Manager -->
           <div id="adminButtonContainer" style="display: none;">
             <hr />
             <a href="admin-contact-messages.html" class="btn btn-outline-primary btn-sm">
@@ -72,25 +107,22 @@
       </div>
 
       <!-- Feedback Form (Right Column) -->
-      <div class="col-lg-7">
-        <div class="p-4 border rounded">
+      <div class="col-12 col-lg-7 px-0 px-lg-2">
+        <div class="p-3 p-lg-4 border rounded">
           <h5 class="text-center mb-4"><b>Feedback Form</b></h5>
           <form id="contactForm">
             <div class="form-group">
               <label for="name">Name</label>
               <input type="text" id="name" class="form-control" required />
             </div>
-
             <div class="form-group">
               <label for="email">Email</label>
               <input type="email" id="email" class="form-control" required />
             </div>
-
             <div class="form-group">
               <label for="message">Message</label>
               <textarea id="message" class="form-control" rows="4" required></textarea>
             </div>
-
             <div class="text-center">
               <button type="submit" class="btn btn-primary px-5">Submit</button>
             </div>
@@ -99,17 +131,17 @@
       </div>
     </div>
   </div>
-  </div>
-<div id="yeshi">
- </div>
-    <iframe 
-  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d8839.703143697567!2d89.63593241401117!3d27.462254127445924!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39e195393b0315c5%3A0x4ef0b864bcbc47f8!2sChangzamtog!5e0!3m2!1sen!2sbt!4v1767084097406!5m2!1sen!2sbt" 
-  style="border:0; width: 100%; height: 300px;" 
-  allowfullscreen="" 
-  loading="lazy" 
-  referrerpolicy="no-referrer-when-downgrade"
-  id="map">
-</iframe>
+
+  <!-- Google Map -->
+  <iframe 
+    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d8839.703143697567!2d89.63593241401117!3d27.462254127445924!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39e195393b0315c5%3A0x4ef0b864bcbc47f8!2sChangzamtog!5e0!3m2!1sen!2sbt!4v1767084097406!5m2!1sen!2sbt"
+    style="border:0; width:100%; height:250px; display:block;"
+    allowfullscreen=""
+    loading="lazy"
+    referrerpolicy="no-referrer-when-downgrade"
+    id="map">
+  </iframe>
+
   <!-- Footer -->
   <footer class="bg-light py-4 mt-5">
     <div class="container">
@@ -140,13 +172,11 @@
           </div>
         </div>
 
-        <!-- Mascot -->
+        <!-- Mascot + About -->
         <div id="Nav_F" class="col-md-4 text-center">
-          <img src="../Images/thumbBoy-removebg-preview.png" alt="Support" class="img-fluid" style="max-height: 120px;"/>
-          <nav col-md-4>
-            <li class="nav-item">
-              <a class="nav-link text-dark" href="About.html">About Us</a>
-            </li>
+          <img src="../Images/thumbBoy-removebg-preview.png" alt="Support" class="img-fluid" style="max-height: 120px;" />
+          <nav class="mt-2">
+            <a class="nav-link text-dark" href="About.html">About Us</a>
           </nav>
         </div>
       </div>
@@ -156,7 +186,18 @@
       </div>
     </div>
   </footer>
- <script type="text/javascript" src="../js/Contact.js"></script>
-</body>
 
+  <!-- Font Awesome -->
+  <script src="https://kit.fontawesome.com/33616e440d.js" crossorigin="anonymous"></script>
+
+  <!-- Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+  <!-- Your Custom JS -->
+  <script src="../js/Contact.js"></script>
+  <script src="../js/authNav.js"></script>
+  <script src="../js/Hamb.js"></script>
+</body>
 </html>

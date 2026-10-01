@@ -122,9 +122,6 @@ public class AuthController {
         return ResponseEntity.ok("Logged out");
     }
 
-    // ======================
-    // DTOs
-    // ======================
 
     public static class LoginRequest {
         private String email;

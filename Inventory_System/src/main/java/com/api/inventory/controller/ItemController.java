@@ -49,9 +49,9 @@ public class ItemController {
     public ItemMasterDTO updateItem(
         @PathVariable Long id,
         @ModelAttribute ItemMasterDTO dto,
-        @RequestParam(value = "image", required = false) MultipartFile imageFile
+        @RequestParam(value = "image", required = false) MultipartFile imageFile  // ✅ 3rd param
     ) {
-        return itemService.updateItem(id, dto, imageFile);
+        return itemService.updateItem(id, dto, imageFile);  // ← Needs 3 params
     }
     
     @GetMapping("/stock/{itemId}")

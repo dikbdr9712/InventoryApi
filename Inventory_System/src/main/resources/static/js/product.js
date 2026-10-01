@@ -79,10 +79,26 @@ document.addEventListener('DOMContentLoaded', () => {
         imageUrl = `../Images/${imageName}`;
       }
 
-      const availability = item.availability || 'Unavailable';
       const safeItemName = escapeHtml(item.itemName);
       const safeSku = escapeHtml(item.sku || '');
 
+      // Extract MRP and Selling Price
+      const mrp = item.mrp != null ? parseFloat(item.mrp) : null;
+      const sellingPrice = item.sellingPrice != null ? parseFloat(item.sellingPrice) : null;
+
+      // Calculate discount %
+      let discountPercent = null;
+      if (mrp && sellingPrice !== null && sellingPrice < mrp) {
+        discountPercent = Math.round(((mrp - sellingPrice) / mrp) * 100);
+      }
+
+      // Build discount badge
+      let discountBadgeHtml = '';
+      if (discountPercent !== null) {
+        discountBadgeHtml = `<span class="discount-badge">Save ${discountPercent}%</span>`;
+      }
+
+      // Restock button
       let restockBtnHtml = '';
       if (canRestock) {
         if (item.sku && item.sku.trim()) {
@@ -100,22 +116,32 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      const card = `
-        <li data-group="0" onclick="showProductDetail(${item.itemId})">
-          <div class="product-card">
-            <img src="${imageUrl}" alt="${safeItemName}" class="product-image" 
-                 onerror="this.src='../Images/default.jpg'">
-            <h3 class="product-title">${safeItemName}</h3>
-            <div class="product-price">
-              Nu. ${item.sellingPrice != null ? item.sellingPrice.toFixed(2) : 'N/A'}
-              ${item.originalPrice > item.sellingPrice ? 
-                `<span class="original-price">Nu. ${item.originalPrice.toFixed(2)}</span>` : ''}
-            </div>
-     
-            ${restockBtnHtml}
-          </div>
-        </li>
-      `;
+      // Price display
+      const displaySelling = sellingPrice !== null ? sellingPrice.toFixed(2) : 'N/A';
+      const originalPriceHtml = (mrp && sellingPrice !== null && sellingPrice < mrp)
+        ? `<span class="original-price">Nu. ${mrp.toFixed(2)}</span>`
+        : '';
+
+		let discountLabelHtml = '';
+		if (discountPercent !== null) {
+		  discountLabelHtml = `<div class="discount-label">${discountPercent}% off</div>`;
+		}
+		
+		const card = `
+		  <li data-group="0" onclick="showProductDetail(${item.itemId})">
+		    <div class="product-card">
+		      <img src="${imageUrl}" alt="${safeItemName}" class="product-image" 
+		           onerror="this.src='../Images/default.jpg'">
+		      <h3 class="product-title">${safeItemName}</h3>
+		      <div class="product-price">
+		        Nu. ${displaySelling}
+		        ${originalPriceHtml}
+		      </div>
+		      ${discountLabelHtml}
+		      ${restockBtnHtml}
+		    </div>
+		  </li>
+		`;
       cardGallery.innerHTML += card;
     });
   }
@@ -136,7 +162,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('detail-image').src = detailImageUrl;
     document.getElementById('detail-desc').textContent = item.description || '';
-    document.getElementById('detail-price').textContent = item.sellingPrice != null ? `Nu. ${item.sellingPrice.toFixed(2)}` : 'N/A';
+    
+    // Show selling price
+    const sellingPrice = item.sellingPrice != null ? parseFloat(item.sellingPrice) : null;
+    document.getElementById('detail-price').textContent = sellingPrice !== null ? `Nu. ${sellingPrice.toFixed(2)}` : 'N/A';
+
+    // Optional: Show MRP in detail view (add span in HTML)
+    const mrp = item.mrp != null ? parseFloat(item.mrp) : null;
+    const originalPriceEl = document.getElementById('detail-original-price');
+    const discountEl = document.getElementById('detail-discount');
+    if (mrp && sellingPrice !== null && sellingPrice < mrp) {
+    // Show strikethrough MRP
+    originalPriceEl.textContent = `Nu. ${mrp.toFixed(2)}`;
+    originalPriceEl.style.display = 'inline';
+
+    // Show discount %
+    const discountPercent = Math.round(((mrp - sellingPrice) / mrp) * 100);
+    discountEl.textContent = `${discountPercent}% off`;
+    discountEl.style.display = 'inline';
+  } else {
+    originalPriceEl.style.display = 'none';
+    discountEl.style.display = 'none';
+  }
+
     document.getElementById('detail-stock').textContent = item.currentStock || 'N/A';
     document.getElementById('detail-uom').textContent = item.uom || '';
     
@@ -201,7 +249,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
 
-      // Admin UI
       const addBtn = document.getElementById('addNewItemBtn');
       const role = localStorage.getItem('userRole');
       addBtn.style.display = (['ADMIN', 'MANAGER'].includes(role)) ? 'inline-block' : 'none';
@@ -217,46 +264,44 @@ document.addEventListener('DOMContentLoaded', () => {
   updateCartBadge();
 });
 
-
+// Nav auth update
 setTimeout(() => {
-    const loginLink = document.getElementById('loginLink');
-    const navList = document.querySelector('.navbar-nav.ml-auto');
+  const loginLink = document.getElementById('loginLink');
+  const navList = document.querySelector('.navbar-nav.ml-auto');
+  
+  if (loginLink && navList) {
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    const userName = localStorage.getItem('userName');
     
-    if (loginLink && navList) {
-      const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-      const userName = localStorage.getItem('userName');
+    if (isLoggedIn && userName) {
+      loginLink.textContent = 'My Account';
+      loginLink.href = 'profile.html';
       
-      if (isLoggedIn && userName) {
-        loginLink.textContent = 'My Account';
-        loginLink.href = 'profile.html';
-        
-        // Add admin dropdown if needed
-        const userRole = localStorage.getItem('userRole')?.toUpperCase() || '';
-        const allowedRoles = ["ADMIN", "MANAGER", "CONTROLLER"];
-        if (allowedRoles.includes(userRole)) {
-          // Create admin dropdown here if needed
-          const existing = document.getElementById('admin-dropdown');
-          if (!existing) {
-            const dropdownLi = document.createElement('li');
-            dropdownLi.id = 'admin-dropdown';
-            dropdownLi.className = 'nav-item dropdown';
-            dropdownLi.innerHTML = `
-              <a class="nav-link dropdown-toggle text-dark" href="#" id="adminDropdown" role="button" 
-                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <i class="fas fa-cogs"></i> Admin
-              </a>
-              <div class="dropdown-menu" aria-labelledby="adminDropdown">
-                <a class="dropdown-item" href="pos.html"><i class="fas fa-shopping-cart mr-2"></i> Point of Sale</a>
-                <a class="dropdown-item" href="pos-history.html"><i class="fas fa-history mr-2"></i> POS Sales History</a>
-                <a class="dropdown-item" href="SalesDashboard.html"><i class="fas fa-chart-line mr-2"></i> Sales Dashboard</a>
-                <a class="dropdown-item" href="order-list.html"><i class="fas fa-list mr-2"></i> Order List</a>
-                <a class="dropdown-item" href="OrderVerification.html"><i class="fas fa-check-circle mr-2"></i> Verify Payments</a>
-                <a class="dropdown-item" href="users.html"><i class="fas fa-user mr-2"></i> User Management</a>
-              </div>
-            `;
-            navList.appendChild(dropdownLi);
-          }
+      const userRole = localStorage.getItem('userRole')?.toUpperCase() || '';
+      const allowedRoles = ["ADMIN", "MANAGER", "CONTROLLER"];
+      if (allowedRoles.includes(userRole)) {
+        const existing = document.getElementById('admin-dropdown');
+        if (!existing) {
+          const dropdownLi = document.createElement('li');
+          dropdownLi.id = 'admin-dropdown';
+          dropdownLi.className = 'nav-item dropdown';
+          dropdownLi.innerHTML = `
+            <a class="nav-link dropdown-toggle text-dark" href="#" id="adminDropdown" role="button" 
+              data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              <i class="fas fa-cogs"></i> Admin
+            </a>
+            <div class="dropdown-menu" aria-labelledby="adminDropdown">
+              <a class="dropdown-item" href="pos.html"><i class="fas fa-shopping-cart mr-2"></i> Point of Sale</a>
+              <a class="dropdown-item" href="pos-history.html"><i class="fas fa-history mr-2"></i> POS Sales History</a>
+              <a class="dropdown-item" href="SalesDashboard.html"><i class="fas fa-chart-line mr-2"></i> Sales Dashboard</a>
+              <a class="dropdown-item" href="order-list.html"><i class="fas fa-list mr-2"></i> Order List</a>
+              <a class="dropdown-item" href="OrderVerification.html"><i class="fas fa-check-circle mr-2"></i> Verify Payments</a>
+              <a class="dropdown-item" href="users.html"><i class="fas fa-user mr-2"></i> User Management</a>
+            </div>
+          `;
+          navList.appendChild(dropdownLi);
         }
       }
     }
-  }, 800);
+  }
+}, 800);

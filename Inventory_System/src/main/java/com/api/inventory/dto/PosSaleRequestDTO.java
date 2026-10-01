@@ -1,6 +1,8 @@
 package com.api.inventory.dto;
 
 import lombok.Data;
+
+import java.math.BigDecimal;
 import java.util.List;
 
 @Data
@@ -8,6 +10,8 @@ public class PosSaleRequestDTO {
     private String customerName;
     private String customerPhone;
     private String paymentMethod; // "CASH", "CARD", "UPI", etc.
+    private BigDecimal mrp;              // ← ADD THIS
+    private BigDecimal discountPercent; 
     private java.math.BigDecimal discountTotal; // total discount amount (not %)
     private List<TaxInfoDTO> taxes;               // list of applied taxes
     private List<ItemQty> items;
@@ -35,6 +39,19 @@ public class PosSaleRequestDTO {
 	public void setItems(List<ItemQty> items) {
 		this.items = items;
 	}
+	
+	public BigDecimal getMrp() {
+		return mrp;
+	}
+	public void setMrp(BigDecimal mrp) {
+		this.mrp = mrp;
+	}
+	public BigDecimal getDiscountPercent() {
+		return discountPercent;
+	}
+	public void setDiscountPercent(BigDecimal discountPercent) {
+		this.discountPercent = discountPercent;
+	}
 	public java.math.BigDecimal getDiscountTotal() {
 		return discountTotal;
 	}
@@ -52,6 +69,7 @@ public class PosSaleRequestDTO {
 	public static class ItemQty {
 	    private Long itemId;
 	    private Integer quantity;
+	    private BigDecimal mrp;
 	    private java.math.BigDecimal discountPercent; // or BigDecimal
 	    private java.math.BigDecimal unitPrice;
 		public Long getItemId() {
@@ -65,6 +83,13 @@ public class PosSaleRequestDTO {
 		}
 		public void setQuantity(Integer quantity) {
 			this.quantity = quantity;
+		}
+		
+		public BigDecimal getMrp() {
+			return mrp;
+		}
+		public void setMrp(BigDecimal mrp) {
+			this.mrp = mrp;
 		}
 		public java.math.BigDecimal getDiscountPercent() {
 			return discountPercent;

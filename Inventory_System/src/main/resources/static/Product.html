@@ -7,37 +7,78 @@
   <link rel="stylesheet" href="/css/Product.css" />
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
-  <script src="https://kit.fontawesome.com/33616e440d.js" crossorigin="anonymous"></script>
 </head>
+<script src="https://kit.fontawesome.com/33616e440d.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+  <script src="../js/authNav.js"></script>
+  <script src="../js/Hamb.js"></script>
 <body>
-  <!-- Navbar -->
+  <!-- Navigation Bar -->
   <nav class="navbar navbar-expand-md navbar-light bg-white shadow-sm">
-      <a class="navbar-brand" href="Index.html">
-        <img src="../Images/Websites logo(Online).png" class="Logo" alt="Logo" />
-      </a>
+    <button
+      class="navbar-toggler"
+      type="button"
+      data-toggle="collapse"
+      data-target="#navbarNav"
+      aria-controls="navbarNav"
+      aria-expanded="false"
+      aria-label="Toggle navigation"
+    >
+      <span class="navbar-toggler-icon"></span>
+    </button>
+        <a class="navbar-brand" href="Index.html">
+      <img src="../Images/Websites logo(Online).png" class="Logo" alt="Logo" />
+    </a>
 
-      <button
-        class="navbar-toggler"
-        type="button"
-        data-toggle="collapse"
-        data-target="#navbarNav"
-        aria-controls="navbarNav"
-        aria-expanded="false"
-        aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav ml-auto">
-        <li class="nav-item"><a class="nav-link text-dark" href="Index.html">Home</a></li>
-        <li class="nav-item"><a class="nav-link text-dark" href="Services.html">Services</a></li>
-        <li class="nav-item"><a class="nav-link text-dark" href="Product.html"><b>Product</b></a></li>
-        <li class="nav-item"><a class="nav-link text-dark" href="orders.html">My Orders</a></li>
-        <li class="nav-item"><a class="nav-link text-dark" href="Contact.html">Contact Us</a></li>
-        <li class="nav-item"><a id="loginLink" class="nav-link text-dark" href="login.html">Login / Register</a></li>
-      </ul>
-    </div>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ml-auto">
+          <li class="nav-item">
+            <a class="nav-link text-dark" href="Index.html">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link text-dark" href="Services.html">Services</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link text-dark" href="Product.html"><b>Products</b></a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link text-dark" href="orders.html">My Order</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link text-dark" href="Contact.html">Contact Us</a>
+          </li>
+          <li class="nav-item">
+            <a id="loginLink" class="nav-link text-dark" href="login.html">Login / Register</a>
+          </li>
+        </ul>
+      </div>
   </nav>
-
+  <!-- Overlay Mobile Menu (Slide-in from left) -->
+  <div id="slideNav" class="slide-nav">
+    <div class="slide-nav-header">
+      <a class="navbar-brand" href="profile.html"><img src="../Images/ProfileIcone.png" class="Logo" alt="Logo" /></a>
+      <button class="slide-close">&times;</button>
+    </div>
+    <ul class="slide-nav-links">
+      <li><a href="Index.html">Home</a></li>
+      <li><a href="Services.html">Services</a></li>
+      <li><a href="Product.html">Products</a></li>
+      <li><a href="orders.html">My Order</a></li>
+      <li><a href="Contact.html">Contact Us</a></li>
+      <li><a id="slideLoginLink" href="login.html">Login / Register</a></li>
+      <!-- Admin section (hidden by default) -->
+      <li id="slideAdminSection" style="display: none;">
+        <strong class="px-3 mt-3 d-block text-muted"><b>ADMIN</b></strong>
+        <a href="pos.html"><i class="fas fa-shopping-cart mr-2"></i> Point of Sale</a>
+        <a href="pos-history.html"><i class="fas fa-history mr-2"></i> POS Sales History</a>
+        <a href="SalesDashboard.html"><i class="fas fa-chart-line mr-2"></i> Sales Dashboard</a>
+        <a href="order-list.html"><i class="fas fa-list mr-2"></i> Order List</a>
+        <a href="OrderVerification.html"><i class="fas fa-check-circle mr-2"></i> Verify Payments</a>
+        <a href="users.html"><i class="fas fa-user mr-2"></i> User Management</a>
+      </li>
+    </ul>
+  </div>
   <!-- Main Content -->
   <div id="container">
     <h4><b>Find Your Product:</b></h4>
@@ -69,9 +110,14 @@
   <!-- Product Detail View -->
   <div id="product-detail" class="product-detail">
     <h2 id="detail-title">Loading...</h2>
-    <img id="detail-image" src="/Images/default.jpg" alt="Product" />
+    <img id="detail-image" src="../Images/default.jpg" alt="Product" />
     <p><strong>Description:</strong> <span id="detail-desc">...</span></p>
-    <p><strong>Price:</strong> <span id="detail-price">Nu. N/A</span></p>
+    <p>
+      <strong>Price:</strong> 
+      <span id="detail-price">Nu. N/A</span> 
+      <span id="detail-original-price" class="original-price" style="display:none;"></span>
+      <span id="detail-discount" class="discount-detail" style="display:none; color:#e74c3c; font-weight:bold; margin-left:6px;"></span>
+    </p>
     <p><strong>Stock:</strong> <span id="detail-stock">0</span> <span id="detail-uom">pcs</span></p>
     <p><strong>Status:</strong> <span id="detail-status" class="status-unavailable">Unavailable</span></p>
     <a id="edit-item-btn" class="btn-edit" href="#">Edit Item</a>
@@ -84,7 +130,6 @@
   <footer class="bg-light py-4 mt-5">
     <div class="container">
       <div class="row">
-        <!-- Info -->
         <div class="col-md-4 text-center text-md-left mb-3 mb-md-0">
           <h5>DK/Phar Inventory Management System</h5>
           <p class="text-muted small">
@@ -93,8 +138,6 @@
             Thimphu/Phuentsholing, Bhutan
           </p>
         </div>
-
-        <!-- Social -->
         <div class="col-md-4 text-center mb-3 mb-md-0">
           <h6>Follow us</h6>
           <div class="d-flex justify-content-center gap-3 mt-2">
@@ -109,11 +152,9 @@
             </a>
           </div>
         </div>
-
-        <!-- Mascot -->
-        <div id="Nav_F" class="col-md-4 text-center">
+        <div class="col-md-4 text-center">
           <img src="../Images/thumbBoy-removebg-preview.png" alt="Support" class="img-fluid" style="max-height: 120px;"/>
-          <nav col-md-4>
+          <nav>
             <li class="nav-item">
               <a class="nav-link text-dark" href="About.html">About Us</a>
             </li>
@@ -132,6 +173,5 @@
   <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
   <script src="/js/product.js"></script>
-  <script src="/js/authNav.js"></script>
 </body>
 </html>

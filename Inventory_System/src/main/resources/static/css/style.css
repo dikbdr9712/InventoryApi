@@ -20,11 +20,15 @@ body {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   padding: 0.5rem 1rem;
 }
-
+img.Logo {
+  height: 50px;
+  width: auto;
+}
 .navbar-brand img.Logo {
   height: 50px;
   width: auto;
 }
+
 
 .nav-link {
   font-weight: 500;
@@ -46,10 +50,12 @@ body {
   overflow: hidden;
   transition: height 0.35s ease;
 }
-/* Admin Dropdown Styling */
+
+/* Admin Dropdown Styling - FIXED */
 #admin-dropdown {
   position: relative;
 }
+
 #admin-dropdown .dropdown-menu {
   position: absolute;
   min-width: 220px;
@@ -60,6 +66,16 @@ body {
   right: 0;
   left: auto;
   z-index: 1000;
+  display: none; /* Critical: hide by default */
+  opacity: 0;
+  transform: translateY(5px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+#admin-dropdown.show .dropdown-menu {
+  display: block !important;
+  opacity: 1;
+  transform: translateY(0);
 }
 
 #admin-dropdown .dropdown-item {
@@ -78,78 +94,65 @@ body {
   margin-left: 0.5rem;
 }
 
-/* Ensure dropdown appears properly on all screens */
-@media (max-width: 992px) {
-  .navbar-nav {
-    flex-direction: column;
-    align-items: flex-start;
-    width: 100%;
-    padding: 1rem 0;
-  }
-  
-  .navbar-nav .nav-item {
-    width: 100%;
-    text-align: left;
-    border-bottom: 1px solid rgba(0,0,0,0.1);
-  }
-  
-  .navbar-nav .nav-link {
-
-    border-bottom: 1px solid rgba(0,0,0,0.1);
-    text-align: left;
-    white-space: normal;
-    word-wrap: break-word;
-  }
-  
-  .navbar-nav .nav-link:last-child {
-    border-bottom: none;
-  }
-  
-  .navbar-toggler {
-    margin-left: 0;
-  }
-   #admin-dropdown .dropdown-menu {
-    position: static;
-    display: block;
-    width: 100%;
-    margin-top: 0;
-    border: none;
-    box-shadow: none;
-    background-color: transparent;
-    min-width: auto;
-    right: 0;
-    left: auto;
-  }
-  
-  #admin-dropdown .dropdown-item {
-    padding: 0.75rem 1.5rem;
-    border-bottom: 1px solid rgba(0,0,0,0.1);
-    white-space: normal;
-    word-wrap: break-word;
-  }
-  
-  #admin-dropdown .dropdown-item:last-child {
-    border-bottom: none;
+/* Desktop behavior (hover to show) */
+@media (min-width: 992px) {
+  #admin-dropdown:hover .dropdown-menu {
+    display: block !important;
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
+/* Extra small screens */
 @media (max-width: 768px) {
   .navbar-brand img.Logo {
     height: 40px;
   }
-  
-  .navbar-nav .nav-link {
-    padding: 0.75rem 1rem;
+  .navbar-collapse {
+    display: none !important;
   }
+   .slide-nav,
+  .offcanvas-body, /* if using Bootstrap 5 offcanvas */
+  #slideNav .nav-link,
+  #slideNav ul,
+  #slideNav li {
+    margin: 0;
+    padding: 0;
+  }
+  #slideNav .nav-item {
+    padding: 0.4rem 1rem; /* default might be 0.8rem or 1rem — reduce */
+    margin: 0;
+  }
+
+  /* Reduce font size slightly for denser layout (optional) */
+  #slideNav .nav-link {
+    font-size: 0.925rem;
+    padding: 0.35rem 0.75rem; /* tighter horizontal + vertical */
+    border-radius: 4px;
+  }
+
+  /* Remove extra top/bottom padding of the whole slide menu */
+  #slideNav {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  /* If there's an admin section inside, tighten its items too */
+  #slideAdminSection .nav-item {
+    padding: 0.35rem 1rem;
+  }
+  
   #admin-dropdown .dropdown-menu {
-    right: 0;
-    left: auto;
-    width: 100%;
-    max-width: 100%;
+    min-width: 180px;
+  }
+  
+  #admin-dropdown .dropdown-item {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.875rem;
   }
 }
 
-/* For medium screens where items might still overflow */
+/* Medium screens optimization */
 @media (min-width: 768px) and (max-width: 991px) {
   .navbar-nav .nav-link {
     font-size: 0.9rem;
@@ -170,6 +173,7 @@ body {
   object-fit: cover;
   width: 100%;
 }
+
 
 /* ======================
    CONTENT SECTIONS
@@ -195,12 +199,6 @@ body {
   flex-direction: row;
   margin: 15px;
   gap: 15px;
-}
-
-#ImgPara {
-  height: 40%;
-  width: 40%;
-  margin: 15px;
 }
 
 #ParaHarbel {
@@ -280,6 +278,7 @@ footer {
   padding: 20px 0;
   margin-top: 40px;
 }
+
 #Nav_F {
   display: flex;
   flex-direction: row;
@@ -308,24 +307,81 @@ footer {
   margin: 4%;
 }
 
+/* === SLIDE-IN MOBILE MENU (LEFT TO RIGHT, OVERLAY) === */
+.slide-nav {
+  position: fixed;
+  top: 0;
+  left: -300px; /* hidden off-screen */
+  width: 250px;
+  height: 100vh;
+  background: white;
+  box-shadow: 0 0 20px rgba(0,0,0,0.15);
+  z-index: 1050;
+  transition: left 0.4s ease-in-out;
+  overflow-y: auto;
+}
+
+.slide-nav.active {
+  left: 0;
+}
+
+.slide-nav-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #eee;
+}
+
+.slide-logo {
+  height: 40px;
+}
+
+.slide-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #333;
+}
+
+.slide-nav-links {
+  list-style: none;
+  padding: 0;
+}
+
+.slide-nav-links li {
+  margin: 0.3rem 0;
+}
+
+.slide-nav-links a {
+  display: block;
+  padding: 0.5rem 1.2rem;
+  text-decoration: none;
+  color: #2e2e2e;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.slide-nav-links a:hover {
+  background-color: #f8f9fa;
+}
+
+/* Prevent body scroll when menu is open */
+.slide-nav.active ~ body {
+  overflow: hidden;
+}
 @keyframes dezang {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.1); }
 }
 
+/* Extra small screen adjustments */
 @media screen and (max-width: 480px) {
-  #admin-dropdown .dropdown-menu {
-    min-width: 100%;
-    right: 0;
-    left: auto;
-  }
-  #admin-dropdown .dropdown-item {
-    font-size: 0.9rem;
-    padding: 0.6rem 1.2rem;
-  }
   .carousel-item img {
     height: 40vh;
   }
+  
   #ProductHeading {
     font-size: 1.5rem;
     padding: 20px;

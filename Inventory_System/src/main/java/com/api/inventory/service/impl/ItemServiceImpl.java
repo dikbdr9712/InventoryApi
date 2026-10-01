@@ -43,6 +43,7 @@ public class ItemServiceImpl implements ItemService {
         item.setUom(dto.getUom() != null ? dto.getUom().trim() : "pcs");
         item.setCostPrice(dto.getCostPrice());
         item.setSellingPrice(dto.getSellingPrice());
+        item.setMrp(dto.getMrp() != null ? dto.getMrp() : BigDecimal.ZERO);
         item.setBarcode(dto.getBarcode());
         item.setSupplierItemCode(dto.getSupplierItemCode());
         item.setCreatedAt(LocalDateTime.now());
@@ -84,16 +85,35 @@ public class ItemServiceImpl implements ItemService {
 
     private ItemMasterDTO toDTO(ItemMaster item, InventoryStock stock) {
         ItemMasterDTO dto = new ItemMasterDTO();
+        
+        // Item fields
         dto.setItemId(item.getItemId());
         dto.setSku(item.getSku());
         dto.setItemName(item.getItemName());
         dto.setDescription(item.getDescription());
         dto.setUom(item.getUom());
+        dto.setCostPrice(item.getCostPrice());
         dto.setSellingPrice(item.getSellingPrice());
-        dto.setCurrentStock(stock != null ? stock.getCurrentQuantity() : 0);
-        dto.setAvailability(stock != null ? stock.getStatus() : "Unavailable");
+        dto.setMrp(item.getMrp());                    // ✅ For discount calculation
+        dto.setMarkupPercent(item.getMarkupPercent()); // ✅ For analytics
         dto.setCategory(item.getCategory());
+        dto.setBarcode(item.getBarcode());
+        dto.setSupplierItemCode(item.getSupplierItemCode());
+        dto.setTaxRate(item.getTaxRate());
+        dto.setDiscountAllowed(item.getDiscountAllowed());
+        dto.setMaxDiscountPercent(item.getMaxDiscountPercent());
         dto.setImagePath(item.getImagePath());
+        dto.setIsActive(item.getIsActive());
+        dto.setCreatedAt(item.getCreatedAt());
+        
+        // Stock fields (from inventory_stock table)
+        if (stock != null) {
+            dto.setStockId(stock.getStockId());
+            dto.setCurrentQuantity(stock.getCurrentQuantity());
+            dto.setStatus(stock.getStatus());
+            dto.setAvailability(stock.getStatus()); // For frontend compatibility
+        }
+        
         return dto;
     }
 
@@ -109,20 +129,64 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
+    @Transactional
     public ItemMasterDTO updateItem(Long id, ItemMasterDTO dto) {
+        // ✅ Find existing item
         ItemMaster existingItem = itemMasterRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Item not found with ID: " + id));
 
-        existingItem.setItemName(dto.getItemName());
+        // ✅ Update basic fields
+        existingItem.setItemName(dto.getItemName() != null ? dto.getItemName().trim() : existingItem.getItemName());
         existingItem.setDescription(dto.getDescription());
-        existingItem.setUom(dto.getUom());
-        existingItem.setSellingPrice(dto.getSellingPrice());
+        existingItem.setUom(dto.getUom() != null ? dto.getUom().trim() : existingItem.getUom());
+        existingItem.setCategory(dto.getCategory() != null ? dto.getCategory().trim() : existingItem.getCategory());
         
+        // ✅ Update pricing fields
+        existingItem.setCostPrice(dto.getCostPrice() != null ? dto.getCostPrice() : existingItem.getCostPrice());
+        existingItem.setSellingPrice(dto.getSellingPrice() != null ? dto.getSellingPrice() : existingItem.getSellingPrice());
+        
+        // ✅ MRP: Use DTO value if provided and > 0, otherwise default to selling price (matches createItem logic)
+        if (dto.getMrp() != null && dto.getMrp().compareTo(BigDecimal.ZERO) > 0) {
+            existingItem.setMrp(dto.getMrp());
+        } else {
+            existingItem.setMrp(existingItem.getSellingPrice());
+        }
+        
+        // ✅ Markup Percent: Update if provided
+        if (dto.getMarkupPercent() != null) {
+            existingItem.setMarkupPercent(dto.getMarkupPercent());
+        }
+        
+        // ✅ Update optional fields
+        existingItem.setBarcode(dto.getBarcode());
+        existingItem.setSupplierItemCode(dto.getSupplierItemCode());
+        existingItem.setTaxRate(dto.getTaxRate() != null ? dto.getTaxRate() : existingItem.getTaxRate());
+        existingItem.setDiscountAllowed(dto.getDiscountAllowed() != null ? dto.getDiscountAllowed() : existingItem.getDiscountAllowed());
+        existingItem.setMaxDiscountPercent(dto.getMaxDiscountPercent() != null ? dto.getMaxDiscountPercent() : existingItem.getMaxDiscountPercent());
+        existingItem.setIsActive(dto.getIsActive() != null ? dto.getIsActive() : existingItem.getIsActive());
+
+        // ✅ Save updated item
         ItemMaster updatedItem = itemMasterRepository.save(existingItem);
         
+        // ✅ Handle stock quantity update (if provided in DTO)
         InventoryStock stock = inventoryStockRepository.findByItemId(id)
             .orElse(null);
-            
+        
+        if (stock != null && dto.getQuantity() != null) {
+            stock.setCurrentQuantity(dto.getQuantity());
+            stock.setLastUpdated(LocalDateTime.now());
+            stock.setStatus(dto.getQuantity() > 0 ? "Available" : "Unavailable");
+            inventoryStockRepository.save(stock);
+        }
+        
+        // ✅ Debug log
+        System.out.println("✏️ Item updated: ID=" + updatedItem.getItemId() + 
+                           ", MRP=" + updatedItem.getMrp() + 
+                           ", Selling=" + updatedItem.getSellingPrice() +
+                           ", Discount=" + (updatedItem.getMrp().compareTo(updatedItem.getSellingPrice()) > 0 ? 
+                               Math.round(((updatedItem.getMrp().doubleValue() - updatedItem.getSellingPrice().doubleValue()) / 
+                               updatedItem.getMrp().doubleValue()) * 100) + "%" : "none"));
+
         return toDTO(updatedItem, stock);
     }
 
@@ -145,21 +209,41 @@ public class ItemServiceImpl implements ItemService {
 	@Override
 	@Transactional
 	public ItemMasterDTO createItem(ItemMasterDTO dto, MultipartFile imageFile) {
+	    // ✅ Validate required fields
 	    if (dto.getItemName() == null || dto.getItemName().trim().isEmpty()) {
 	        throw new IllegalArgumentException("Item name is required");
 	    }
 
+	    // ✅ Create and populate ItemMaster entity
 	    ItemMaster item = new ItemMaster();
 	    item.setItemName(dto.getItemName().trim());
 	    item.setDescription(dto.getDescription());
 	    item.setUom(dto.getUom() != null ? dto.getUom().trim() : "pcs");
 	    
-	    // ✅ CRITICAL: Set costPrice and category
+	    // ✅ Pricing: Cost, Selling, MRP, Markup
 	    item.setCostPrice(dto.getCostPrice() != null ? dto.getCostPrice() : BigDecimal.ZERO);
-	    item.setSellingPrice(dto.getSellingPrice() != null ? dto.getSellingPrice() : item.getCostPrice());
+	    
+	    // Selling price: use DTO value or fallback to cost price
+	    item.setSellingPrice(
+	        dto.getSellingPrice() != null ? dto.getSellingPrice() : item.getCostPrice()
+	    );
+	    
+	    // MRP: use DTO value if provided and > 0, otherwise default to selling price (no discount)
+	    if (dto.getMrp() != null && dto.getMrp().compareTo(BigDecimal.ZERO) > 0) {
+	        item.setMrp(dto.getMrp());
+	    } else {
+	        item.setMrp(item.getSellingPrice());
+	    }
+	    
+	    // Markup percent: optional, for analytics/reporting
+	    if (dto.getMarkupPercent() != null) {
+	        item.setMarkupPercent(dto.getMarkupPercent());
+	    }
+	    
+	    // Category with default fallback
 	    item.setCategory(dto.getCategory() != null ? dto.getCategory().trim() : "Uncategorized");
 	    
-	    // Optional fields
+	    // ✅ Optional fields with null-safe defaults
 	    item.setBarcode(dto.getBarcode());
 	    item.setSupplierItemCode(dto.getSupplierItemCode());
 	    item.setDiscountAllowed(dto.getDiscountAllowed() != null ? dto.getDiscountAllowed() : true);
@@ -167,17 +251,17 @@ public class ItemServiceImpl implements ItemService {
 	        dto.getMaxDiscountPercent() != null ? dto.getMaxDiscountPercent() : new BigDecimal("100.00")
 	    );
 	    item.setTaxRate(dto.getTaxRate() != null ? dto.getTaxRate() : BigDecimal.ZERO);
+	    item.setIsActive(true); // Default to active
 
-	    // Generate temporary SKU
+	    // ✅ Generate temporary SKU, save, then update with permanent SKU
 	    item.setSku("TEMP-" + System.currentTimeMillis());
 	    ItemMaster savedItem = itemMasterRepository.save(item);
 
-	    // Update with real SKU
 	    String finalSku = "ITEM-" + savedItem.getItemId();
 	    savedItem.setSku(finalSku);
 	    itemMasterRepository.save(savedItem);
 
-	    // Handle image
+	    // ✅ Handle image upload (optional)
 	    if (imageFile != null && !imageFile.isEmpty()) {
 	        try {
 	            String cleanName = savedItem.getItemName().toLowerCase().replaceAll("[^a-z0-9]", "");
@@ -187,24 +271,42 @@ public class ItemServiceImpl implements ItemService {
 	            Path uploadDir = Paths.get(System.getProperty("user.dir"), "uploads");
 	            Files.createDirectories(uploadDir);
 	            Path filePath = uploadDir.resolve(filename);
+	            
 	            Files.copy(imageFile.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
 	            savedItem.setImagePath("/uploads/" + filename);
 	            itemMasterRepository.save(savedItem);
-	            System.out.println("Saved item with imagePath: " + savedItem.getImagePath());
+	            System.out.println("✅ Saved item with imagePath: " + savedItem.getImagePath());
+	            
 	        } catch (IOException e) {
-	            System.err.println("Failed to save image: " + e.getMessage());
+	            System.err.println("❌ Failed to save image: " + e.getMessage());
+	            // Continue without image - don't fail the whole operation
 	        }
 	    }
 
-	    // Create stock record
+	    // ✅ Create inventory_stock record with quantity from DTO (NOT hardcoded 0)
+	    Integer initialQuantity = dto.getQuantity() != null ? dto.getQuantity() : 0;
+	    
 	    InventoryStock stock = new InventoryStock();
 	    stock.setItemId(savedItem.getItemId());
-	    stock.setCurrentQuantity(0);
+	    stock.setCurrentQuantity(initialQuantity);  // ✅ Use actual quantity from frontend
 	    stock.setLastUpdated(LocalDateTime.now());
-	    stock.setStatus("Unavailable");
+	    
+	    // Set status based on quantity (or let @PrePersist handle it)
+	    stock.setStatus(initialQuantity > 0 ? "Available" : "Unavailable");
+	    
 	    inventoryStockRepository.save(stock);
+	    
+	    // ✅ Debug log (remove in production or use proper logger)
+	    System.out.println("📦 Item created: ID=" + savedItem.getItemId() + 
+	                       ", Qty=" + initialQuantity + 
+	                       ", MRP=" + item.getMrp() + 
+	                       ", Selling=" + item.getSellingPrice() +
+	                       ", Discount=" + (item.getMrp().compareTo(item.getSellingPrice()) > 0 ? 
+	                           Math.round(((item.getMrp().doubleValue() - item.getSellingPrice().doubleValue()) / 
+	                           item.getMrp().doubleValue()) * 100) + "%" : "none"));
 
+	    // ✅ Return DTO with item + stock info for frontend
 	    return toDTO(savedItem, stock);
 	}
 

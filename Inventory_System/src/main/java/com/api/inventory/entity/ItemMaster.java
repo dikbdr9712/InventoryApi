@@ -27,8 +27,12 @@ public class ItemMaster {
     private String uom;
     @Column(name = "cost_price", precision = 10, scale = 2)
     private BigDecimal costPrice = BigDecimal.ZERO;
+    @Column(name = "markup_percent", precision = 5, scale = 2)
+    private BigDecimal markupPercent; 
     @Column(name = "selling_price", precision = 10, scale = 2)
     private BigDecimal sellingPrice = BigDecimal.ZERO;
+    @Column(name = "mrp", precision = 10, scale = 2)
+    private BigDecimal mrp = BigDecimal.ZERO;
     @Transient // ← Important: Not persisted
     public BigDecimal getMarkupPercentage() {
         if (costPrice == null || costPrice.compareTo(BigDecimal.ZERO) <= 0) {
@@ -130,6 +134,15 @@ public class ItemMaster {
 	public void setCostPrice(BigDecimal costPrice) {
 		this.costPrice = costPrice;
 	}
+	
+
+	public BigDecimal getMarkupPercent() {
+		return markupPercent;
+	}
+
+	public void setMarkupPercent(BigDecimal markupPercent) {
+		this.markupPercent = markupPercent;
+	}
 
 	public BigDecimal getSellingPrice() {
 		return sellingPrice;
@@ -137,6 +150,15 @@ public class ItemMaster {
 
 	public void setSellingPrice(BigDecimal sellingPrice) {
 		this.sellingPrice = sellingPrice;
+	}
+	
+
+	public BigDecimal getMrp() {
+		return mrp;
+	}
+
+	public void setMrp(BigDecimal mrp) {
+		this.mrp = mrp;
 	}
 
 	public Boolean getDiscountAllowed() {

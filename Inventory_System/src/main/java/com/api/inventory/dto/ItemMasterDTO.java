@@ -1,6 +1,7 @@
 package com.api.inventory.dto;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 import lombok.*;
 
@@ -14,8 +15,10 @@ public class ItemMasterDTO {
     private String description;
     private String uom;
     private BigDecimal sellingPrice;
+    private BigDecimal markupPercent; 
     private BigDecimal costPrice;
     private BigDecimal taxRate;
+    private BigDecimal mrp;
     private Boolean discountAllowed;
     private BigDecimal maxDiscountPercent;
     private Integer currentStock;
@@ -24,6 +27,15 @@ public class ItemMasterDTO {
     private String supplierItemCode;  
     private String category;
     private String imagePath;
+ // ✅ Temporary field for creation only (not persisted to item_master)
+    private Integer quantity;
+    
+    // Stock info (for response)
+    private Long stockId;
+    private Integer currentQuantity;
+    private Boolean isActive;
+    private LocalDateTime createdAt;
+    private String status;
 	public Long getItemId() {
 		return itemId;
 	}
@@ -60,6 +72,13 @@ public class ItemMasterDTO {
 	public void setSellingPrice(BigDecimal sellingPrice) {
 		this.sellingPrice = sellingPrice;
 	}
+	
+	public BigDecimal getMarkupPercent() {
+		return markupPercent;
+	}
+	public void setMarkupPercent(BigDecimal markupPercent) {
+		this.markupPercent = markupPercent;
+	}
 	public BigDecimal getCostPrice() {
 		return costPrice;
 	}
@@ -71,6 +90,13 @@ public class ItemMasterDTO {
 	}
 	public void setTaxRate(BigDecimal taxRate) {
 		this.taxRate = taxRate;
+	}
+	
+	public BigDecimal getMrp() {
+		return mrp;
+	}
+	public void setMrp(BigDecimal mrp) {
+		this.mrp = mrp;
 	}
 	public Boolean getDiscountAllowed() {
 		return discountAllowed;
@@ -119,6 +145,42 @@ public class ItemMasterDTO {
 	}
 	public void setImagePath(String imagePath) {
 		this.imagePath = imagePath;
+	}
+	public Integer getQuantity() {
+		return quantity;
+	}
+	public void setQuantity(Integer quantity) {
+		this.quantity = quantity;
+	}
+	public Long getStockId() {
+		return stockId;
+	}
+	public void setStockId(Long stockId) {
+		this.stockId = stockId;
+	}
+	public Integer getCurrentQuantity() {
+		return currentQuantity;
+	}
+	public void setCurrentQuantity(Integer currentQuantity) {
+		this.currentQuantity = currentQuantity;
+	}
+	public String getStatus() {
+		return status;
+	}
+	public void setStatus(String status) {
+		this.status = status;
+	}
+	public Boolean getIsActive() {
+		return isActive;
+	}
+	public void setIsActive(Boolean isActive) {
+		this.isActive = isActive;
+	}
+	public LocalDateTime getCreatedAt() {
+		return createdAt;
+	}
+	public void setCreatedAt(LocalDateTime createdAt) {
+		this.createdAt = createdAt;
 	}
     
     

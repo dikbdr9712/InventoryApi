@@ -11,20 +11,22 @@
   <script src="../js/authNav.js"></script>
 </head>
 <body>
-      <nav
-        class="navbar navbar-expand-md navbar-light bg-white shadow-sm">
-        <a class="navbar-brand" href="Index.html"><img src="../Images/Websites logo(Online).png" class="Logo" alt=""/></a>
-        <!-- Hamburger Icon -->
-        <button
-          class="navbar-toggler"
-          type="button"
-          data-toggle="collapse"
-          data-target="#navbarNav"
-          aria-controls="navbarNav"
-          aria-expanded="false"
-          aria-label="Toggle navigation">
-          <span class="navbar-toggler-icon"></span>
-        </button>
+    <!-- Navigation Bar -->
+  <nav class="navbar navbar-expand-md navbar-light bg-white shadow-sm">
+    <button
+      class="navbar-toggler"
+      type="button"
+      data-toggle="collapse"
+      data-target="#navbarNav"
+      aria-controls="navbarNav"
+      aria-expanded="false"
+      aria-label="Toggle navigation"
+    >
+      <span class="navbar-toggler-icon"></span>
+    </button>
+        <a class="navbar-brand" href="Index.html">
+      <img src="../Images/Websites logo(Online).png" class="Logo" alt="Logo" />
+    </a>
   
         <!-- Nav Items -->
         <div class="collapse navbar-collapse" id="navbarNav">
@@ -38,6 +40,31 @@
           </ul>
         </div>
       </nav>
+  <!-- Overlay Mobile Menu (Slide-in from left) -->
+  <div id="slideNav" class="slide-nav">
+    <div class="slide-nav-header">
+      <a class="navbar-brand" href="profile.html"><img src="../Images/ProfileIcone.png" class="Logo" alt="Logo" /></a>
+      <button class="slide-close">&times;</button>
+    </div>
+    <ul class="slide-nav-links">
+      <li><a href="Index.html">Home</a></li>
+      <li><a href="Services.html">Services</a></li>
+      <li><a href="Product.html">Products</a></li>
+      <li><a href="orders.html">My Order</a></li>
+      <li><a href="Contact.html">Contact Us</a></li>
+      <li><a id="slideLoginLink" href="login.html">Login / Register</a></li>
+      <!-- Admin section (hidden by default) -->
+      <li id="slideAdminSection" style="display: none;">
+        <strong class="px-3 mt-3 d-block text-muted"><b>ADMIN</b></strong>
+        <a href="pos.html"><i class="fas fa-shopping-cart mr-2"></i> Point of Sale</a>
+        <a href="pos-history.html"><i class="fas fa-history mr-2"></i> POS Sales History</a>
+        <a href="SalesDashboard.html"><i class="fas fa-chart-line mr-2"></i> Sales Dashboard</a>
+        <a href="order-list.html"><i class="fas fa-list mr-2"></i> Order List</a>
+        <a href="OrderVerification.html"><i class="fas fa-check-circle mr-2"></i> Verify Payments</a>
+        <a href="users.html"><i class="fas fa-user mr-2"></i> User Management</a>
+      </li>
+    </ul>
+  </div>
   
   <div class="container_">
     <h1>My Account</h1>
@@ -54,7 +81,6 @@
       <button id="logoutBtn">Logout</button>
     </div>
   </div>
-  <!-- Footer -->
   <footer class="bg-light py-4 mt-5">
     <div class="container">
       <div class="row">
@@ -68,7 +94,6 @@
           </p>
         </div>
 
-        <!-- Social -->
         <div class="col-md-4 text-center mb-3 mb-md-0">
           <h6>Follow us</h6>
           <div class="d-flex justify-content-center gap-3 mt-2">
@@ -84,7 +109,6 @@
           </div>
         </div>
 
-        <!-- Mascot -->
         <div id="Nav_F" class="col-md-4 text-center">
           <img src="../Images/thumbBoy-removebg-preview.png" alt="Support" class="img-fluid" style="max-height: 120px;"/>
           <nav col-md-4>
@@ -104,5 +128,6 @@
   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  <script src="../js/Hamb.js"></script>
 </body>
 </html>
