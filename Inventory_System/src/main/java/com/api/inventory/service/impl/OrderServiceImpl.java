@@ -11,6 +11,7 @@ import com.api.inventory.exception.OrderNotFoundException;
 import com.api.inventory.exception.ResourceNotFoundException;
 import com.api.inventory.repository.*;
 import com.api.inventory.service.OrderService;
+import com.api.inventory.service.PackageService;
 import com.api.inventory.service.PaymentService;
 
 import lombok.RequiredArgsConstructor;
@@ -53,12 +54,98 @@ public class OrderServiceImpl implements OrderService {
 	private  PaymentService paymentService; 
 	@Autowired
 	private ShipmentRepository shipmentRepository;
+	@Autowired
+	private SellerProfileRepository sellerProfileRepository;
+	@Autowired
+	private PackageService packageService;
+	@Autowired
+	private com.api.inventory.service.PosShiftService posShiftService;
+	@Autowired
+	private com.api.inventory.service.CustomerService customerService;
+	@Autowired
+	private com.api.inventory.service.DeliveryPricingService deliveryPricing;
 
+
+	private static final Set<String> POS_METHODS = Set.of("CASH", "CARD", "UPI", "BANK_TRANSFER");
+	private static final Set<String> TAX_TYPES = Set.of("GST", "ET", "CDA", "VAT", "OTHER");
+	private static final BigDecimal MAX_TAX_RATE = new BigDecimal("50");
+	/** Rounding room for discounts sent with 8 decimals. */
+	private static final BigDecimal DISCOUNT_TOLERANCE = new BigDecimal("0.0001");
 
 	@Transactional
 	public Order createInPersonSale(PosSaleRequestDTO request) {
 	    if (request.getItems() == null || request.getItems().isEmpty()) {
 	        throw new IllegalArgumentException("At least one item is required");
+	    }
+
+	    // The same sale sent twice (double click, network retry) is saved once: give back the first one
+	    String clientRef = request.getClientRef() == null ? null : request.getClientRef().trim();
+	    if (clientRef != null && !clientRef.isEmpty()) {
+	        if (clientRef.length() > 64) {
+	            throw new IllegalArgumentException("Sale reference is too long.");
+	        }
+	        java.util.Optional<Order> already = orderRepository.findByClientRef(clientRef);
+	        if (already.isPresent()) {
+	            return already.get();
+	        }
+	    } else {
+	        clientRef = null;
+	    }
+
+	    // No open cash drawer, no sale: every sale belongs to a cashier's shift
+	    PosShift shift = posShiftService.requireOpenShift();
+
+	    String method = request.getPaymentMethod() == null ? "" : request.getPaymentMethod().trim().toUpperCase();
+	    if (!POS_METHODS.contains(method)) {
+	        throw new IllegalArgumentException("Choose how the customer paid.");
+	    }
+	    String phone = request.getCustomerPhone() == null ? null : request.getCustomerPhone().trim();
+	    if (phone != null && !phone.isEmpty() && !phone.matches("^[0-9]{8}$")) {
+	        throw new IllegalArgumentException("Enter an 8-digit phone number, or leave it empty.");
+	    }
+
+	    // Taxes: only known types, sensible rates, each type once
+	    if (request.getTaxes() != null) {
+	        Set<String> seen = new java.util.HashSet<>();
+	        for (TaxInfoDTO t : request.getTaxes()) {
+	            String type = t.getType() == null ? "" : t.getType().trim().toUpperCase();
+	            double rate = t.getRate() == null ? 0 : t.getRate();
+	            if (!TAX_TYPES.contains(type) || rate < 0 || BigDecimal.valueOf(rate).compareTo(MAX_TAX_RATE) > 0) {
+	                throw new IllegalArgumentException("Check the tax: " + t.getType() + " at " + t.getRate() + "%.");
+	            }
+	            if (!seen.add(type)) {
+	                throw new IllegalArgumentException(type + " is added twice.");
+	            }
+	        }
+	    }
+
+	    // Discounts: the shop's own price is always allowed. More than that needs "Give extra discounts",
+	    // and never more than the product's maximum discount.
+	    boolean mayDiscount = com.api.inventory.security.CurrentUser.has("pos.discount");
+	    for (ItemQty item : request.getItems()) {
+	        if (item.getItemId() == null || item.getQuantity() == null) {
+	            throw new IllegalArgumentException("A line in the sale is incomplete.");
+	        }
+	        ItemMaster m = itemMasterRepository.findById(item.getItemId())
+	                .orElseThrow(() -> new IllegalArgumentException("A product in the sale no longer exists. Reload the products."));
+	        BigDecimal asked = item.getDiscountPercent() == null ? BigDecimal.ZERO : item.getDiscountPercent();
+	        if (asked.signum() < 0 || asked.compareTo(BigDecimal.valueOf(100)) > 0) {
+	            throw new IllegalArgumentException("The discount on " + m.getItemName() + " must be between 0 and 100%.");
+	        }
+	        BigDecimal shopDiscount = BigDecimal.ZERO;
+	        if (m.getMrp() != null && m.getMrp().signum() > 0 && m.getSellingPrice() != null && m.getSellingPrice().compareTo(m.getMrp()) < 0) {
+	            shopDiscount = m.getMrp().subtract(m.getSellingPrice()).multiply(BigDecimal.valueOf(100)).divide(m.getMrp(), 8, RoundingMode.HALF_UP);
+	        }
+	        BigDecimal limit = shopDiscount;
+	        if (mayDiscount && !Boolean.FALSE.equals(m.getDiscountAllowed())) {
+	            BigDecimal max = m.getMaxDiscountPercent() == null ? BigDecimal.valueOf(100) : m.getMaxDiscountPercent();
+	            limit = max.max(shopDiscount);
+	        }
+	        if (asked.compareTo(limit.add(DISCOUNT_TOLERANCE)) > 0) {
+	            throw new IllegalStateException(mayDiscount
+	                    ? "The most you can take off " + m.getItemName() + " is " + limit.setScale(2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString() + "%."
+	                    : "You are not allowed to give an extra discount on " + m.getItemName() + ". Ask a manager.");
+	        }
 	    }
 
 	    BigDecimal subtotalBeforeDiscount = BigDecimal.ZERO; // MRP-based total
@@ -67,13 +154,25 @@ public class OrderServiceImpl implements OrderService {
 	    List<OrderItem> orderItemsToSave = new ArrayList<>();
 
 	    for (ItemQty item : request.getItems()) {
+	        if (item.getQuantity() < 1) {
+	            throw new IllegalArgumentException("Quantity must be at least 1");
+	        }
 	        ItemMaster master = itemMasterRepository.findById(item.getItemId())
 	                .orElseThrow(() -> new RuntimeException("Item not found: " + item.getItemId()));
+	        if (master.getSellerId() != null) {
+	            throw new IllegalStateException(master.getItemName() + " belongs to a marketplace seller and is sold online only.");
+	        }
 
 	        InventoryStock stock = inventoryStockRepository.findByItemId(item.getItemId())
 	                .orElseThrow(() -> new RuntimeException("Stock not initialized"));
 	        if (stock.getCurrentQuantity() < item.getQuantity()) {
 	            throw new IllegalStateException("Insufficient stock for item: " + master.getItemName());
+	        }
+
+	        // The shop's price list decides the price, not the browser. A different MRP means the screen is out of date (or was changed).
+	        if (item.getMrp() != null && item.getMrp().compareTo(BigDecimal.ZERO) > 0
+	                && (master.getMrp() == null || item.getMrp().compareTo(master.getMrp()) != 0)) {
+	            throw new IllegalStateException("The price of " + master.getItemName() + " has changed. Please reload the products and try again.");
 	        }
 
 	        // Get MRP (from request or DB)
@@ -144,11 +243,23 @@ public class OrderServiceImpl implements OrderService {
 	    // Final total = discounted amount + tax
 	    BigDecimal finalTotal = amountAfterDiscount.add(totalTax);
 
+	    BigDecimal tendered = request.getAmountTendered();
+	    if ("CASH".equals(method) && tendered != null
+	            && tendered.compareTo(finalTotal.setScale(2, RoundingMode.HALF_UP)) < 0) {
+	        throw new IllegalStateException("Cash received (Nu. " + tendered + ") is less than the total (Nu. "
+	                + finalTotal.setScale(2, RoundingMode.HALF_UP) + ").");
+	    }
+
 	    // Save ORDER
 	    Order order = new Order();
 	    order.setCustomerName(request.getCustomerName());
-	    order.setCustomerPhone(request.getCustomerPhone());
-	    order.setPaymentMethod(request.getPaymentMethod());
+	    order.setCustomerPhone(phone == null || phone.isEmpty() ? null : phone);
+	    order.setPaymentMethod(method);
+	    order.setShiftId(shift.getId());
+	    order.setCashier(shift.getCashierEmail());
+	    order.setUpdatedBy(shift.getCashierEmail());
+	    order.setClientRef(clientRef);
+	    order.setAmountTendered("CASH".equals(method) ? tendered : null);
 	    order.setOrderStatus("COMPLETED");
 	    order.setPaymentStatus("PAID");
 	    order.setSource("POS");
@@ -159,6 +270,7 @@ public class OrderServiceImpl implements OrderService {
 	    order.setUpdatedAt(LocalDateTime.now());
 
 	    Order savedOrder = orderRepository.save(order);
+	    customerService.linkOrder(savedOrder); // only when the customer gave a phone number
 
 	    // Save tax details
 	    for (TaxDetail detail : taxDetailsToSave) {
@@ -171,7 +283,7 @@ public class OrderServiceImpl implements OrderService {
 	        orderItem.setOrderId(savedOrder.getOrderId());
 	        orderItemRepository.save(orderItem);
 
-	        inventoryStockRepository.adjustStockByDelta(orderItem.getItemId(), -orderItem.getQuantity());
+	        takeStock(orderItem.getItemId(), orderItem.getQuantity());
 
 	        Transaction tx = new Transaction();
 	        tx.setItemId(orderItem.getItemId());
@@ -194,9 +306,28 @@ public class OrderServiceImpl implements OrderService {
 	    List<OrderItem> orderItems = new ArrayList<>();
 	    BigDecimal totalAmount = BigDecimal.ZERO;
 
+	    if (dto.getAddress() == null || dto.getAddress().isBlank()) {
+	        throw new IllegalStateException("Please enter the delivery address.");
+	    }
+
 	    for (OrderRequestDTO.Item item : dto.getNormalizedItems()) {
+	        if (item.getQuantity() < 1) {
+	            throw new IllegalArgumentException("Quantity must be at least 1 (item " + item.getItemId() + ")");
+	        }
 	        ItemMaster itemMaster = itemMasterRepository.findById(item.getItemId())
-	            .orElseThrow(() -> new RuntimeException("Item not found: " + item.getItemId()));
+	            .orElseThrow(() -> new IllegalStateException("A product in your cart is no longer sold. Please remove it."));
+
+	        if (Boolean.FALSE.equals(itemMaster.getIsActive())) {
+	            throw new IllegalStateException(itemMaster.getItemName() + " is no longer sold. Please remove it from your cart.");
+	        }
+	        if (itemMaster.getSellerId() != null
+	                && !sellerProfileRepository.findById(itemMaster.getSellerId()).map(SellerProfile::isApproved).orElse(false)) {
+	            throw new IllegalStateException(itemMaster.getItemName() + " is not available right now. Please remove it from your cart.");
+	        }
+	        int inStock = inventoryStockRepository.findByItemId(item.getItemId()).map(InventoryStock::getCurrentQuantity).orElse(0);
+	        if (inStock < item.getQuantity()) {
+	            throw new IllegalStateException("Only " + Math.max(inStock, 0) + " of " + itemMaster.getItemName() + " left. Please change the quantity.");
+	        }
 
 	        BigDecimal unitPrice = itemMaster.getSellingPrice();
 	        BigDecimal lineTotal = unitPrice.multiply(BigDecimal.valueOf(item.getQuantity()));
@@ -216,21 +347,40 @@ public class OrderServiceImpl implements OrderService {
 	    order.setCustomerEmail(dto.getCustomerEmail());   // ← ADD THIS
 	    order.setCustomerPhone(dto.getCustomerPhone());
 	    order.setAddress(dto.getAddress());               // ← ADD THIS
+	    // where on the map: the chosen delivery area, or the phone's location (none = the delivery fee is estimated)
+	    com.api.inventory.service.DeliveryPricingService.Drop drop =
+	            deliveryPricing.drop(dto.getDropLatitude(), dto.getDropLongitude(), dto.getAreaId());
+	    if (drop.point() != null) {
+	        order.setDropLatitude(drop.point().latitude());
+	        order.setDropLongitude(drop.point().longitude());
+	        order.setDropLocation(drop.label());
+	    }
 	    order.setOrderStatus("CREATED");
 	    order.setPaymentStatus("PENDING");
 	    order.setTotalAmount(totalAmount);
 	    order.setCreatedAt(LocalDateTime.now());
 	    order.setUpdatedAt(LocalDateTime.now());
 	    order.setSource("ONLINE");
+
+	    if (totalAmount.compareTo(BigDecimal.ZERO) <= 0) {
+	        throw new IllegalArgumentException("Your order total must be more than zero.");
+	    }
 	    
 	    Order savedOrder = orderRepository.save(order);
 
 	    for (OrderItem item : orderItems) {
 	        item.setOrderId(savedOrder.getOrderId());
-	        orderItemRepository.save(item);
 	    }
 
-	    return savedOrder;
+	    // One package per seller; the delivery fees are added to what the customer pays
+	    BigDecimal deliveryFees = packageService.createPackages(savedOrder, orderItems);
+	    orderItemRepository.saveAll(orderItems);
+
+	    savedOrder.setDeliveryFee(deliveryFees);
+	    savedOrder.setTotalAmount(totalAmount.add(deliveryFees));
+	    Order finalOrder = orderRepository.save(savedOrder);
+	    customerService.linkOrder(finalOrder); // the buyer's customer record and history
+	    return finalOrder;
 	}
 	
 	@Transactional
@@ -259,7 +409,7 @@ public class OrderServiceImpl implements OrderService {
 
 	    // ✅ Deduct stock & record transactions
 	    for (OrderItem item : items) {
-	        inventoryStockRepository.adjustStockByDelta(item.getItemId(), -item.getQuantity());
+	        takeStock(item.getItemId(), item.getQuantity());
 
 	        Transaction tx = new Transaction();
 	        tx.setItemId(item.getItemId());
@@ -272,8 +422,9 @@ public class OrderServiceImpl implements OrderService {
 	        tx.setCreatedAt(LocalDateTime.now());
 	        transactionRepository.save(tx);
 	    }
+	    packageService.markOrderPaid(orderId); // sellers can start packing
 	}
-	
+
 
 	@Override
 	public List<Order> getPosSales() {
@@ -315,7 +466,7 @@ public class OrderServiceImpl implements OrderService {
         // ✅ Reduce stock and record transactions
         for (OrderItem item : items) {
             // Reduce stock
-            inventoryStockRepository.adjustStockByDelta(item.getItemId(), -item.getQuantity());
+            takeStock(item.getItemId(), item.getQuantity());
 
             // Record SALE transaction with order reference
             Transaction tx = new Transaction();
@@ -334,6 +485,7 @@ public class OrderServiceImpl implements OrderService {
         order.setOrderStatus("CONFIRMED");
         order.setUpdatedAt(LocalDateTime.now());
         orderRepository.save(order);
+        packageService.markOrderPaid(orderId); // sellers can start packing
     }
     
     public void confirmOrderWithUser(Long orderId, String status, String note, String updatedBy) {
@@ -362,9 +514,15 @@ public class OrderServiceImpl implements OrderService {
         Order order = orderRepository.findById(orderId)
             .orElseThrow(() -> new RuntimeException("Order not found"));
 
+        if ("SHIPPED".equals(order.getOrderStatus()) || "COMPLETED".equals(order.getOrderStatus())) {
+            throw new IllegalStateException("This order has already left the shop and can no longer be cancelled. Use Return to take items back.");
+        }
+
         if ("CANCELLED".equals(order.getOrderStatus())) {
             return;
         }
+
+        packageService.cancelForOrder(orderId); // refuses if a package is already on the way
 
         if ("CONFIRMED".equals(order.getOrderStatus())) {
             List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
@@ -394,6 +552,10 @@ public class OrderServiceImpl implements OrderService {
     public void completeOrder(Long orderId) {
         Order order = orderRepository.findById(orderId)
             .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        if (packageService.hasPackages(orderId)) {
+            throw new IllegalStateException("This order is completed automatically when every package is delivered. See Deliveries.");
+        }
 
         // ✅ Allow completion only if order is SHIPPED
         if (!"SHIPPED".equals(order.getOrderStatus())) {
@@ -474,21 +636,42 @@ public class OrderServiceImpl implements OrderService {
         // ✅ 2. All items available → CONFIRMED
         order.setOrderStatus("CONFIRMED");
         order.setPaymentStatus("PAID");
+        order.setUpdatedBy(com.api.inventory.security.CurrentUser.email());
         orderRepository.save(order);
+
+        // the payment the customer sent is now checked, too (so it no longer shows as waiting)
+        Payment sent = paymentService.findByOrderId(orderId);
+        if (sent != null && "pending".equalsIgnoreCase(sent.getStatus())) {
+            sent.setStatus("confirmed");
+            paymentService.save(sent);
+        }
 
         // ✅ 3. Reduce stock (only after payment + availability confirmed)
         for (OrderItem item : items) {
-            inventoryStockRepository.adjustStockByDelta(item.getItemId(), -item.getQuantity());
-            // Record transaction...
+            takeStock(item.getItemId(), item.getQuantity());
+            Transaction tx = new Transaction();
+            tx.setItemId(item.getItemId());
+            tx.setTransactionType("SALE");
+            tx.setQuantity(item.getQuantity());
+            tx.setUnitPrice(item.getUnitPrice());
+            tx.setCustomerOrSupplier(order.getCustomerName());
+            tx.setReferenceId(orderId);
+            tx.setReferenceType("ORDER");
+            tx.setCreatedAt(LocalDateTime.now());
+            transactionRepository.save(tx);
         }
+        packageService.markOrderPaid(orderId); // sellers can start packing
     }
-   
+
     @Transactional
     public void shipOrder(Long orderId, String updatedBy) {
         Order order = findById(orderId);
 
         if (!"CONFIRMED".equals(order.getOrderStatus())) {
             throw new IllegalStateException("Order must be CONFIRMED to ship");
+        }
+        if (packageService.hasPackages(orderId)) {
+            throw new IllegalStateException("This order goes out package by package: pack it and hand it to a rider in Deliveries.");
         }
 
         // ✅ Generate shipment ID automatically
@@ -520,6 +703,14 @@ public class OrderServiceImpl implements OrderService {
         
         return "SHP-" + datePart + "-" + String.format("%04d", nextSeq);
     }
+    /** Takes stock in one step; refuses (and rolls the whole sale back) if another sale took it first. */
+    private void takeStock(Long itemId, int quantity) {
+        if (inventoryStockRepository.takeIfAvailable(itemId, quantity) == 0) {
+            String name = itemMasterRepository.findById(itemId).map(ItemMaster::getItemName).orElse("item " + itemId);
+            throw new IllegalStateException("Not enough " + name + " in stock any more. Reload and try again.");
+        }
+    }
+
 
     @Override
     public Order findById(Long id) {

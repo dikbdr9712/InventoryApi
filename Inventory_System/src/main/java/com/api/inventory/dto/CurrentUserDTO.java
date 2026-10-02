@@ -23,6 +23,13 @@ public class CurrentUserDTO {
     private String role;
 	private Long roleId; 
 
+	/** What this person may do (from their role, in the database). The screens show and hide tools with it. */
+	private java.util.List<String> permissions = java.util.List.of();
+
+	public java.util.List<String> getPermissions() { return permissions; }
+	public void setPermissions(java.util.List<String> permissions) { this.permissions = permissions; }
+
+
     public CurrentUserDTO(String email, String name, String phone, String role) {
         this.email = email;
         this.name = name;

@@ -21,6 +21,12 @@ public interface InventoryStockRepository extends JpaRepository<InventoryStock, 
     @Query("UPDATE InventoryStock s SET s.currentQuantity = s.currentQuantity + :delta WHERE s.itemId = :itemId")
     void adjustStockByDelta(@Param("itemId") Long itemId, @Param("delta") Integer delta);
     
+    /** Takes stock only if enough is left, in one step (two tills selling the last one cannot both succeed). 1 = done, 0 = not enough. */
+    @Modifying
+    @Transactional
+    @Query("UPDATE InventoryStock s SET s.currentQuantity = s.currentQuantity - :qty WHERE s.itemId = :itemId AND s.currentQuantity >= :qty")
+    int takeIfAvailable(@Param("itemId") Long itemId, @Param("qty") Integer qty);
+
     @Modifying
     @Query("DELETE FROM InventoryStock s WHERE s.itemId = :itemId")
     void deleteByItemId(@Param("itemId") Long itemId);

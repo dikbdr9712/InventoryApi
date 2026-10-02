@@ -21,9 +21,8 @@ public class CorsConfig {
 
         // Updated to allow your local network IP alongside localhost
         config.setAllowedOriginPatterns(List.of(
-                "http://localhost:4200",
-                "http://localhost:5500",
-                "http://127.0.0.1:5500",
+                "http://localhost:[*]",        // any local dev port (ng serve may not get 4200)
+                "http://127.0.0.1:[*]",
                 "http://192.168.123.30:4200",  // Your main PC local IP address
                 "http://192.168.137.1:4200"    // Your secondary network IP address
         ));

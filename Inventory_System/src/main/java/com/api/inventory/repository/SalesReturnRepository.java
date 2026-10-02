@@ -9,4 +9,5 @@ public interface SalesReturnRepository extends JpaRepository<SalesReturn, Long> 
 
     /** Every return made against one sale, newest first */
     List<SalesReturn> findByOrderIdOrderByCreatedAtDesc(Long orderId);
+    List<SalesReturn> findByCreatedByAndCreatedAtBetween(String createdBy, java.time.Instant from, java.time.Instant to);
 }

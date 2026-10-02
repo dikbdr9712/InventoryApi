@@ -49,23 +49,23 @@ public class SalesReturnController {
 
     /** What can still be returned from this sale, and what each unit would refund. */
     @GetMapping("/returnable")
-    public ReturnableOrder returnable(@PathVariable("orderId") Long orderId, HttpServletRequest request) {
-        signedInWithRole(request, VIEW_ROLES);
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyAuthority('sales.return','pos.use','orders.view')")
+    public ReturnableOrder returnable(@PathVariable("orderId") Long orderId) {
         return service.returnable(orderId);
     }
 
     /** The returns already made against this sale. */
     @GetMapping("/returns")
-    public List<ReturnView> list(@PathVariable("orderId") Long orderId, HttpServletRequest request) {
-        signedInWithRole(request, VIEW_ROLES);
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyAuthority('sales.return','pos.use','orders.view')")
+    public List<ReturnView> list(@PathVariable("orderId") Long orderId) {
         return service.list(orderId);
     }
 
     /** Takes items back, gives the money back, and puts stock back on the shelf. */
     @PostMapping("/returns")
-    public ReturnView create(@PathVariable("orderId") Long orderId, @RequestBody ReturnRequest body,
-                             HttpServletRequest request) {
-        String email = signedInWithRole(request, rolesFrom(createRoles));
+    @org.springframework.security.access.prepost.PreAuthorize("hasAuthority('sales.return')")
+    public ReturnView create(@PathVariable("orderId") Long orderId, @RequestBody ReturnRequest body) {
+        String email = com.api.inventory.security.CurrentUser.email();
         return service.createReturn(orderId, body, email);
     }
 

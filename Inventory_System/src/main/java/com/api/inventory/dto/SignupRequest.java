@@ -9,6 +9,11 @@ public class SignupRequest {
     private String email;     // Login ID
     private String phone;
     private String password;
+    /** The version of the Terms of Use and Privacy the person ticked "I agree" to. */
+    private Integer acceptedTermsVersion;
+
+    public Integer getAcceptedTermsVersion() { return acceptedTermsVersion; }
+    public void setAcceptedTermsVersion(Integer acceptedTermsVersion) { this.acceptedTermsVersion = acceptedTermsVersion; }
     // getters/setters
 	public String getName() {
 		return name;

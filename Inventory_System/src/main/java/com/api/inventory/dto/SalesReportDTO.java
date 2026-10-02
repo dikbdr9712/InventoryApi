@@ -22,6 +22,23 @@ public class SalesReportDTO {
         this.totalDiscount = totalDiscount != null ? totalDiscount : BigDecimal.ZERO;
     }
 
+    // H2 (used by the tests) does not know MySQL's DATE(), so the day arrives untyped. Same result as the constructor above.
+    public SalesReportDTO(Object day,
+                          BigDecimal totalSales,
+                          Long totalOrders,
+                          BigDecimal totalTax,
+                          BigDecimal totalDiscount) {
+        this(toSqlDate(day), totalSales, totalOrders, totalTax, totalDiscount);
+    }
+
+    private static Date toSqlDate(Object day) {
+        if (day == null || day instanceof Date) return (Date) day;
+        if (day instanceof java.time.LocalDate d) return Date.valueOf(d);
+        if (day instanceof java.time.LocalDateTime t) return Date.valueOf(t.toLocalDate());
+        if (day instanceof java.util.Date d) return new Date(d.getTime());
+        return Date.valueOf(day.toString().substring(0, 10));
+    }
+
 	public Date getDate() {
 		return date;
 	}

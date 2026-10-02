@@ -27,27 +27,49 @@ public class PaymentServiceImpl implements PaymentService {
     private OrderRepository orderRepository;
 	@Autowired
 	private TransactionRepository transactionRepository;
+	/**
+	 * The customer says "I am paying for this order". The SERVER decides the amount (the order's real total)
+	 * and the status ("pending" until staff check it). Amount, status and transactionId sent by the browser are ignored.
+	 * Pressing Pay twice gives back the same pending payment; a processed or rejected payment cannot be created again.
+	 */
 	@Override
 	public Payment createPayment(PaymentRequestDTO dto) {
 	    Order order = orderRepository.findById(dto.getOrderId())
 	            .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + dto.getOrderId()));
 
-	    Payment payment = new Payment();
-	    payment.setOrderId(dto.getOrderId());
-	    payment.setPaymentMethod(dto.getPaymentMethod());
-	    payment.setAmount(dto.getAmount() != null ? dto.getAmount() : BigDecimal.ZERO);
-	    payment.setStatus(dto.getStatus() != null ? dto.getStatus() : "pending");
-	    payment.setPaymentDate(LocalDateTime.now());
-
-	    // ✅ SET THE JOURNAL NUMBER (this was missing!)
-	    payment.setJournalNumber(dto.getJournalNumber()); // ← Add this line
-
-	    // Link to existing transaction if provided
-	    if (dto.getTransactionId() != null) {
-	        Transaction transaction = transactionRepository.findById(dto.getTransactionId())
-	                .orElseThrow(() -> new ResourceNotFoundException("Transaction not found with ID: " + dto.getTransactionId()));
-	        payment.setTransaction(transaction);
+	    if ("CANCELLED".equalsIgnoreCase(order.getOrderStatus())) {
+	        throw new IllegalStateException("This order was cancelled and cannot be paid.");
 	    }
+
+	    // Online orders are paid before delivery (riders never carry cash), so only bank transfer is accepted
+	    String method = dto.getPaymentMethod() == null ? "" : dto.getPaymentMethod().trim().toLowerCase();
+	    if (!"bank".equals(method)) {
+	        throw new IllegalStateException("Please pay by bank transfer. Orders are delivered after the payment is checked.");
+	    }
+	    if (dto.getJournalNumber() == null || dto.getJournalNumber().isBlank()) {
+	        throw new IllegalStateException("Enter the journal number from your bank receipt.");
+	    }
+
+	    Optional<Payment> existing = paymentRepository.findByOrderId(order.getOrderId());
+	    if (existing.isPresent()) {
+	        if ("pending".equalsIgnoreCase(existing.get().getStatus())) {
+	            return existing.get();
+	        }
+	        throw new IllegalStateException("A payment for this order was already processed.");
+	    }
+
+	    BigDecimal total = order.getTotalAmount();
+	    if (total == null || total.signum() <= 0) {
+	        throw new IllegalStateException("This order has no amount to pay.");
+	    }
+
+	    Payment payment = new Payment();
+	    payment.setOrderId(order.getOrderId());
+	    payment.setPaymentMethod(dto.getPaymentMethod());
+	    payment.setAmount(total);
+	    payment.setStatus("pending");
+	    payment.setPaymentDate(LocalDateTime.now());
+	    payment.setJournalNumber(dto.getJournalNumber());
 
 	    return paymentRepository.save(payment);
 	}

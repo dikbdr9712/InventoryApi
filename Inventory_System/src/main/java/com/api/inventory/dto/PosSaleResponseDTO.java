@@ -9,6 +9,8 @@ import java.util.List;
 @Data
 public class PosSaleResponseDTO {
     private Long orderId;
+    private String cashier;   // who made the sale
+    private Long shiftId;     // which cash drawer shift
     private String customerName;
     private String customerPhone;
     private String customerEmail;

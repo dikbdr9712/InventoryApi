@@ -25,6 +25,12 @@ public class Order {
     @Column(name = "customer_phone", nullable = true)
     private String customerPhone;
     private String address;
+    /** The delivery point on the map (from the customer's phone, or the delivery area they chose). Empty = not given. */
+    private Double dropLatitude;
+    private Double dropLongitude;
+    /** How the point was found: "Your location (GPS)" or the area's name. */
+    @Column(length = 120)
+    private String dropLocation;
     private String orderStatus;
     @Column(name = "tax_amount", precision = 12, scale = 2)
     private BigDecimal taxAmount = BigDecimal.ZERO;
@@ -64,6 +70,32 @@ public class Order {
     private String paymentMethod; 
     @Column(name = "source", nullable = false)
     private String source = "ONLINE"; // default
+
+    /** Delivery fees included in totalAmount (one fee per package). Empty on older orders. */
+    @Column(name = "delivery_fee", precision = 12, scale = 2)
+    private BigDecimal deliveryFee;
+
+    /** The customer this order belongs to (online buyer, or a counter customer who gave a phone number). */
+    @Column(name = "customer_id")
+    private Long customerId;
+
+    // ----- counter sales -----
+
+    /** The cash drawer shift this counter sale belongs to. */
+    @Column(name = "shift_id")
+    private Long shiftId;
+
+    /** Email of the cashier who made the counter sale. */
+    @Column(name = "cashier", length = 150)
+    private String cashier;
+
+    /** The till's own id for the sale, so pressing Complete twice (or a network retry) never saves it twice. */
+    @Column(name = "client_ref", length = 64, unique = true)
+    private String clientRef;
+
+    /** Cash handed over by the customer (cash sales), for the receipt. */
+    @Column(name = "amount_tendered", precision = 12, scale = 2)
+    private BigDecimal amountTendered;
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private List<TaxDetail> taxDetails;
 

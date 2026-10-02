@@ -1,5 +1,6 @@
 package com.api.inventory.controller;
 
+import com.api.inventory.security.OrderAccess;
 import com.api.inventory.dto.OrderItemResponseDTO;
 import com.api.inventory.dto.OrderRequestDTO;
 import com.api.inventory.dto.OrderResponseDTO;
@@ -42,6 +43,10 @@ public class OrderController {
     private PaymentService paymentService;
     @Autowired
     private EmailService emailService;
+    @Autowired
+    private OrderAccess orderAccess;
+    @Autowired
+    private com.api.inventory.service.PackageService packageService;
 
     // Keep your existing repositories if used elsewhere (e.g., in createOrder logic)
     // If not used, you can remove these — but keeping for safety
@@ -60,18 +65,21 @@ public class OrderController {
     @PostMapping
     @PreAuthorize("isAuthenticated()")
     public Order createOrder(@RequestBody OrderRequestDTO dto) {
+        orderAccess.requireOwnEmail(dto.getCustomerEmail());
         return orderService.createOrder(dto);
     }
 
     @PostMapping("/{orderId}/cancel")
     @PreAuthorize("isAuthenticated()")
     public void cancelOrder(@PathVariable Long orderId) {
+        orderAccess.requireCancellable(orderId);
         orderService.cancelOrder(orderId);
     }
 
     @GetMapping("/customer/{email}")
     @PreAuthorize("isAuthenticated()")
     public List<OrderResponseDTO> getOrdersByCustomer(@PathVariable String email) {
+        orderAccess.requireSelfOrPermission(email, "orders.view");
         List<Order> orders = orderService.getOrdersByCustomerEmail(email);
         return orders.stream()
                 .map(OrderResponseDTO::fromEntity)
@@ -81,14 +89,23 @@ public class OrderController {
     @GetMapping("/{orderId}/items")
     @PreAuthorize("isAuthenticated()")
     public List<OrderItemResponseDTO> getOrderItems(@PathVariable Long orderId) {
+        orderAccess.requireOwnerOrPermission(orderId, "orders.view", "pos.use");
         return orderService.getOrderItemsByOrderId(orderId);
     }
 
     // ✅ FIXED: Now returns OrderResponseDTO instead of Order
+    /** Where each part of the order is. The customer also gets the 4-digit code to give the rider. */
+    @GetMapping("/{orderId}/packages")
+    @PreAuthorize("isAuthenticated()")
+    public List<com.api.inventory.dto.MarketplaceDTOs.PackageView> getOrderPackages(@PathVariable Long orderId) {
+        Order order = orderAccess.requireOwnerOrPermission(orderId, "orders.view");
+        return packageService.forOrder(orderId, orderAccess.isOwner(order));
+    }
+
     @GetMapping("/{orderId}")
     @PreAuthorize("isAuthenticated()")
     public OrderResponseDTO getOrderById(@PathVariable Long orderId) {
-        Order order = orderService.getOrderById(orderId);
+        Order order = orderAccess.requireOwnerOrPermission(orderId, "orders.view", "pos.use");
         return OrderResponseDTO.fromEntity(order);
     }
 
@@ -108,10 +125,34 @@ public class OrderController {
 
         String updatedBy = getCurrentUserEmail();
         System.out.println(">>> Updating order by: " + updatedBy);
+
+        // Only known values: this endpoint must never jump an order to SHIPPED/COMPLETED and skip delivery
+        if (request.getStatus() != null && !java.util.Set.of("CONFIRMED", "CANCELLED").contains(request.getStatus())) {
+            throw new IllegalStateException("Unknown order status: " + request.getStatus());
+        }
+        if (request.getPaymentStatus() != null && !java.util.Set.of("PAID", "PARTIALLY_PAID", "PENDING_INFO", "REJECTED", "FAILED", "PENDING")
+                .contains(request.getPaymentStatus().trim().toUpperCase())) {
+            throw new IllegalStateException("Unknown payment status: " + request.getPaymentStatus());
+        }
+        if ("CANCELLED".equals(request.getStatus())) {
+            orderService.cancelOrder(orderId); // gives stock back and cancels the packages
+        }
+
         Order order = orderService.findById(orderId);
 
-        // If status is provided and is CONFIRMED → perform full confirmation flow
-        if (request.getStatus() != null && "CONFIRMED".equals(request.getStatus())) {
+        // Marking a new order as fully paid also confirms it: stock is taken and the sellers can start packing
+        boolean paidNow = request.getPaymentStatus() != null && "PAID".equalsIgnoreCase(request.getPaymentStatus().trim())
+                && request.getStatus() == null && "CREATED".equals(order.getOrderStatus());
+        boolean confirmedNow = false;
+        if (paidNow) {
+            order.setPaymentStatus("PAID");
+            orderService.save(order);
+            orderService.processOrderConfirmation(orderId); // takes stock once
+            order = orderService.findById(orderId);
+            order.setOrderStatus("CONFIRMED");
+            confirmedNow = true;
+        } else if ("CONFIRMED".equals(request.getStatus())) {
+            // If status is provided and is CONFIRMED → perform full confirmation flow
             if (!"CREATED".equals(order.getOrderStatus())) {
                 throw new IllegalStateException("Order must be in CREATED state to confirm");
             }
@@ -119,6 +160,7 @@ public class OrderController {
                 throw new IllegalStateException("Payment must be PAID or PARTIALLY_PAID to confirm order");
             }
             orderService.processOrderConfirmation(orderId);
+            confirmedNow = true;
         }
 
         // Update fields only if provided
@@ -143,7 +185,7 @@ public class OrderController {
         }
 
         // Send email only on CONFIRMED
-        if ("CONFIRMED".equals(request.getStatus())) {
+        if (confirmedNow) {
             emailService.sendEmail(
                     order.getCustomerEmail(),
                     "Your Order #" + order.getOrderId() + " is Confirmed!",

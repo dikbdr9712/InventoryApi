@@ -29,6 +29,10 @@ public class AdminOrderServiceImpl implements AdminOrderService {
     private InventoryStockRepository inventoryStockRepository;
 	@Autowired
     private OrderService orderService; // ← delegate to real business logic
+	@Autowired
+    private com.api.inventory.repository.PaymentRepository paymentRepository;
+	@Autowired
+    private com.api.inventory.service.PackageService packageService;
 
     @Override
     public List<AdminOrderResponseDTO> getAllOrdersForAdmin() {
@@ -90,6 +94,15 @@ public class AdminOrderServiceImpl implements AdminOrderService {
         response.setCreatedAt(order.getCreatedAt());
         response.setUpdatedAt(order.getUpdatedAt());
         response.setItems(enrichedItems);
+        response.setCustomerPhone(order.getCustomerPhone());
+        response.setSource(order.getSource());
+        response.setHasPackages(packageService.hasPackages(order.getOrderId()));
+        paymentRepository.findByOrderId(order.getOrderId()).ifPresent(p -> {
+            response.setPaymentMethod(p.getPaymentMethod());
+            response.setJournalNumber(p.getJournalNumber());
+            response.setPaymentAmount(p.getAmount());
+            response.setPaymentSubmitted("pending".equalsIgnoreCase(p.getStatus()) || "partially_paid".equalsIgnoreCase(p.getStatus()));
+        });
         
         return response;
     }

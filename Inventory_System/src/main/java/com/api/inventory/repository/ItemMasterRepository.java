@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface ItemMasterRepository extends JpaRepository<ItemMaster, Long> {
 	List<ItemMaster> findBySkuContainingIgnoreCaseOrItemNameContainingIgnoreCase(String sku, String itemName);
+	List<ItemMaster> findBySellerIdOrderByItemIdDesc(Long sellerId);
 	Optional<ItemMaster> findBySku(String sku);
 
 }

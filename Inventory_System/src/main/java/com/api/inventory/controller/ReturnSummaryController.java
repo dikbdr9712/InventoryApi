@@ -42,8 +42,8 @@ public class ReturnSummaryController {
     @GetMapping("/summary")
     @Transactional(readOnly = true)
     @SuppressWarnings("unchecked")
-    public List<SaleRefund> summary(HttpServletRequest request) {
-        requireStaff(request);
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyAuthority('sales.return','pos.use','orders.view','reports.view')")
+    public List<SaleRefund> summary() {
 
         List<Object[]> rows = em.createNativeQuery(
                         "SELECT r.order_id, COUNT(*), SUM(r.refund_amount), o.total_amount "

@@ -10,6 +10,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import lombok.RequiredArgsConstructor;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import com.api.inventory.entity.SellerProfile;
+import com.api.inventory.repository.SellerProfileRepository;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -22,6 +26,8 @@ public class ItemController {
     private ItemService itemService;
     @Autowired
     private ItemMasterRepository itemMasterRepository;
+    @Autowired
+    private SellerProfileRepository sellerProfileRepository;
 
     @PostMapping(value = "/addItems", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAuthority('items.manage')")
@@ -34,14 +40,33 @@ public class ItemController {
 
     @GetMapping("/allItems")
     public List<ItemMasterDTO> getAllItems() {
-        List<ItemMasterDTO> items = itemService.getAllItems();
-        items.forEach(this::forCaller);
+        Map<Long, SellerProfile> sellers = sellerProfileRepository.findAll().stream()
+                .collect(Collectors.toMap(SellerProfile::getId, s -> s));
+        boolean staff = CurrentUser.has("items.manage");
+        List<ItemMasterDTO> items = itemService.getAllItems().stream()
+                // shoppers only see marketplace products that are switched on and whose seller is active
+                .filter(item -> staff || item.getSellerId() == null
+                        || (!Boolean.FALSE.equals(item.getIsActive())
+                            && sellers.containsKey(item.getSellerId()) && sellers.get(item.getSellerId()).isApproved()))
+                .collect(Collectors.toList());
+        items.forEach(item -> withSeller(forCaller(item), sellers));
         return items;
     }
 
     @GetMapping("/{id}")
     public ItemMasterDTO getItem(@PathVariable Long id) {
-        return forCaller(itemService.getItemById(id));
+        ItemMasterDTO item = forCaller(itemService.getItemById(id));
+        if (item != null && item.getSellerId() != null) {
+            sellerProfileRepository.findById(item.getSellerId()).ifPresent(s -> item.setSellerName(s.getShopName()));
+        }
+        return item;
+    }
+
+    /** "Sold by ..." on marketplace products. Our own products have no seller name. */
+    private void withSeller(ItemMasterDTO item, Map<Long, SellerProfile> sellers) {
+        if (item.getSellerId() != null && sellers.containsKey(item.getSellerId())) {
+            item.setSellerName(sellers.get(item.getSellerId()).getShopName());
+        }
     }
 
     /**

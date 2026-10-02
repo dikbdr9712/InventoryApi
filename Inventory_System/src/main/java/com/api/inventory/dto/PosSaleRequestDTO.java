@@ -15,6 +15,10 @@ public class PosSaleRequestDTO {
     private java.math.BigDecimal discountTotal; // total discount amount (not %)
     private List<TaxInfoDTO> taxes;               // list of applied taxes
     private List<ItemQty> items;
+    /** The till's own id for this sale (a random UUID). The same id twice = the same sale, saved once. */
+    private String clientRef;
+    /** Cash the customer handed over (cash sales only). */
+    private BigDecimal amountTendered;
 	public String getCustomerName() {
 		return customerName;
 	}

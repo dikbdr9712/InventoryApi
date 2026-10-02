@@ -1,33 +1,75 @@
 package com.api.inventory.config;
 
+import com.api.inventory.repository.UserRepository;
+import com.api.inventory.security.AccessControlService;
+import com.api.inventory.security.SessionAuthenticationFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 
+/**
+ * The outer wall. Two layers:
+ *   1. Here: everything under /api needs a signed-in person, except the short list of public addresses below.
+ *      A new endpoint that someone forgets to protect is therefore closed, not open.
+ *   2. On each endpoint: @PreAuthorize("hasAuthority('...')") decides which permission is needed.
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, UserRepository users, AccessControlService access) throws Exception {
         http
-                // Use the CorsConfigurationSource bean from CorsConfig (allows Angular on :4200)
+                // Use the CorsConfigurationSource bean from CorsConfig (allows the Angular dev server)
                 .cors(Customizer.withDefaults())
 
-                // Angular sends JSON with the session cookie; CSRF tokens are not used
+                // Angular sends JSON with the session cookie (SameSite=Lax); CSRF tokens are not used
                 .csrf(csrf -> csrf.disable())
 
-                // Login is handled by your own /api/auth/login controller
+                // Login is our own /api/auth/login; the session is created there
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
+                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
 
-                // Same as before: everything is reachable; controllers check the session themselves
+                // Who is calling: read from the session and the database on every request
+                .addFilterBefore(new SessionAuthenticationFilter(users, access), AnonymousAuthenticationFilter.class)
+
                 .authorizeHttpRequests(auth -> auth
+                        // public: signing in and up
+                        .requestMatchers("/api/auth/login", "/api/auth/signup", "/api/auth/logout", "/api/auth/me").permitAll()
+                        // public: the shop window
+                        .requestMatchers(HttpMethod.GET, "/api/items/allItems", "/api/items/*", "/api/items/stock/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/marketplace/settings").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/delivery/areas").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/delivery/quote").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/legal/terms/*", "/api/legal/terms/*/versions/*").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/contact").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // everything else in the API needs a signed-in person (and then its own permission)
+                        .requestMatchers("/api/**").authenticated()
+                        // pictures, the old static pages, health check
                         .anyRequest().permitAll()
-                );
+                )
+
+                // a clear 401 (not a login page redirect) when someone is not signed in
+                .exceptionHandling(e -> e.authenticationEntryPoint((request, response, ex) -> {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"message\":\"Please sign in.\"}");
+                }))
+
+                .headers(h -> h
+                        .contentTypeOptions(Customizer.withDefaults())
+                        .frameOptions(f -> f.sameOrigin())
+                        .referrerPolicy(r -> r.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)));
 
         return http.build();
     }

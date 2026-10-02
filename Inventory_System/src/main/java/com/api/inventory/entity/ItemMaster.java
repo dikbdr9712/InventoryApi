@@ -71,6 +71,14 @@ public class ItemMaster {
     private String category;
     @Column(name = "image_path")
     private String imagePath;
+
+    /** The SellerProfile that sells this product. Empty = our own shop's product. */
+    @Column(name = "seller_id")
+    private Long sellerId;
+
+    /** How big it is to deliver: SMALL, MEDIUM, LARGE or BULKY (see DeliverySize). Empty = small. */
+    @Column(name = "delivery_size", length = 10)
+    private String deliverySize;
 	public Long getItemId() {
 		return itemId;
 	}

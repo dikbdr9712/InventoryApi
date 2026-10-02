@@ -36,6 +36,13 @@ public class ItemMasterDTO {
     private Boolean isActive;
     private LocalDateTime createdAt;
     private String status;
+
+    // Marketplace: who sells it (empty = our own shop)
+    private Long sellerId;
+    private String sellerName;
+
+    /** SMALL, MEDIUM, LARGE or BULKY: decides the delivery price and which riders can carry it. */
+    private String deliverySize;
 	public Long getItemId() {
 		return itemId;
 	}

@@ -1,19 +1,17 @@
 package com.api.inventory.security;
 
+import com.api.inventory.entity.User;
+import com.api.inventory.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -21,43 +19,51 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Login (AuthController) stores "userEmail" and "userRole" in the HTTP session, but nothing told Spring Security
- * who the person was. So @PreAuthorize never worked, and "who did this" was always "system".
+ * Tells Spring Security who is calling, on every request.
  *
- * This filter reads those two session values on every request and tells Spring Security:
- * the signed-in person is this email, and they have these permissions (see Permissions).
- * If there is no session, nothing changes and the visitor stays anonymous.
+ * Login (AuthController) puts the email in the HTTP session. This filter looks the person up in the database
+ * each time, so the CURRENT role and permissions are used: if an admin changes someone's role, or switches
+ * the account off, it takes effect on the very next click (a switched-off account is signed out).
+ *
+ * It runs inside Spring Security's chain (see SecurityConfig), before the access rules are checked.
  */
-@Component
-@Order(Ordered.LOWEST_PRECEDENCE)
 public class SessionAuthenticationFilter extends OncePerRequestFilter {
+
+    private final UserRepository users;
+    private final AccessControlService access;
+
+    public SessionAuthenticationFilter(UserRepository users, AccessControlService access) {
+        this.users = users;
+        this.access = access;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
 
-        SecurityContext before = SecurityContextHolder.getContext();
-        try {
-            HttpSession session = request.getSession(false); // never creates a session
-            if (session != null) {
-                Object email = session.getAttribute("userEmail");
-                Object role = session.getAttribute("userRole");
+        HttpSession session = request.getSession(false); // never creates a session
+        Object email = session == null ? null : session.getAttribute("userEmail");
 
-                if (email instanceof String signedInEmail && role instanceof String roleName) {
-                    List<GrantedAuthority> authorities = new ArrayList<>();
-                    authorities.add(new SimpleGrantedAuthority("ROLE_" + roleName.trim().toUpperCase())); // for hasRole(...)
-                    for (String permission : Permissions.forRole(roleName)) {
-                        authorities.add(new SimpleGrantedAuthority(permission));                         // for hasAuthority(...)
-                    }
-                    var principal = User.withUsername(signedInEmail).password("").authorities(authorities).build();
-                    SecurityContext context = SecurityContextHolder.createEmptyContext();
-                    context.setAuthentication(UsernamePasswordAuthenticationToken.authenticated(principal, null, authorities));
-                    SecurityContextHolder.setContext(context);
+        if (email instanceof String signedInEmail) {
+            User user = users.findByEmail(signedInEmail).orElse(null);
+            if (user == null || !user.isActive() || user.getRole() == null) {
+                session.invalidate(); // deleted or switched off: signed out now
+            } else {
+                String roleName = user.getRole().getName().trim().toUpperCase();
+                session.setAttribute("userRole", roleName);
+
+                List<GrantedAuthority> authorities = new ArrayList<>();
+                authorities.add(new SimpleGrantedAuthority("ROLE_" + roleName));                 // for hasRole(...)
+                for (String permission : access.permissionsOf(roleName)) {
+                    authorities.add(new SimpleGrantedAuthority(permission));                     // for hasAuthority(...)
                 }
+                var principal = org.springframework.security.core.userdetails.User
+                        .withUsername(user.getEmail()).password("").authorities(authorities).build();
+                SecurityContext context = SecurityContextHolder.createEmptyContext();
+                context.setAuthentication(UsernamePasswordAuthenticationToken.authenticated(principal, null, authorities));
+                SecurityContextHolder.setContext(context);
             }
-            chain.doFilter(request, response);
-        } finally {
-            SecurityContextHolder.setContext(before); // leave nothing behind for the next request on this thread
         }
+        chain.doFilter(request, response);
     }
 }

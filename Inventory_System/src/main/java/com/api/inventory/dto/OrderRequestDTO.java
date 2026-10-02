@@ -13,6 +13,10 @@ public class OrderRequestDTO {
     private String customerEmail;
     private String customerPhone;   // ✅ Add this
     private String address;
+    // Where to deliver on the map: the phone's location, or a delivery area (the area wins). Both optional.
+    private Double dropLatitude;
+    private Double dropLongitude;
+    private Long areaId;
     private BigDecimal totalAmount;
     
     // Primary format: list of items (used by cart)

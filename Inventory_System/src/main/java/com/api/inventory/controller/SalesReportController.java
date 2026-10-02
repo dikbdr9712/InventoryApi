@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/reports")
+@org.springframework.security.access.prepost.PreAuthorize("hasAuthority('reports.view')") // was open to anyone
 public class SalesReportController {
 
     @Autowired

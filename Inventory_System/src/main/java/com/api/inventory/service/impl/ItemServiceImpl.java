@@ -48,6 +48,7 @@ public class ItemServiceImpl implements ItemService {
         item.setSupplierItemCode(dto.getSupplierItemCode());
         item.setCreatedAt(LocalDateTime.now());
         item.setCategory(dto.getCategory().trim());
+        item.setDeliverySize(com.api.inventory.entity.DeliverySize.parse(dto.getDeliverySize()));
 
         // ✅ Generate SKU BEFORE saving
         String autoSku = "ITEM-" + System.currentTimeMillis(); // Temporary unique ID
@@ -105,7 +106,9 @@ public class ItemServiceImpl implements ItemService {
         dto.setImagePath(item.getImagePath());
         dto.setIsActive(item.getIsActive());
         dto.setCreatedAt(item.getCreatedAt());
-        
+        dto.setSellerId(item.getSellerId());
+        dto.setDeliverySize(com.api.inventory.entity.DeliverySize.of(item.getDeliverySize()).name());
+
         // Stock fields (from inventory_stock table)
         if (stock != null) {
             dto.setStockId(stock.getStockId());
@@ -164,6 +167,9 @@ public class ItemServiceImpl implements ItemService {
         existingItem.setDiscountAllowed(dto.getDiscountAllowed() != null ? dto.getDiscountAllowed() : existingItem.getDiscountAllowed());
         existingItem.setMaxDiscountPercent(dto.getMaxDiscountPercent() != null ? dto.getMaxDiscountPercent() : existingItem.getMaxDiscountPercent());
         existingItem.setIsActive(dto.getIsActive() != null ? dto.getIsActive() : existingItem.getIsActive());
+        if (dto.getDeliverySize() != null) {
+            existingItem.setDeliverySize(com.api.inventory.entity.DeliverySize.parse(dto.getDeliverySize()));
+        }
 
         // ✅ Save updated item
         ItemMaster updatedItem = itemMasterRepository.save(existingItem);
@@ -242,6 +248,7 @@ public class ItemServiceImpl implements ItemService {
 	    
 	    // Category with default fallback
 	    item.setCategory(dto.getCategory() != null ? dto.getCategory().trim() : "Uncategorized");
+	    item.setDeliverySize(com.api.inventory.entity.DeliverySize.parse(dto.getDeliverySize()));
 	    
 	    // ✅ Optional fields with null-safe defaults
 	    item.setBarcode(dto.getBarcode());
@@ -322,6 +329,9 @@ public class ItemServiceImpl implements ItemService {
 	    item.setSellingPrice(dto.getSellingPrice());
 	    item.setBarcode(dto.getBarcode());
 	    item.setSupplierItemCode(dto.getSupplierItemCode());
+	    if (dto.getDeliverySize() != null) {
+	        item.setDeliverySize(com.api.inventory.entity.DeliverySize.parse(dto.getDeliverySize()));
+	    }
 
 	    // Handle image upload
 	    if (imageFile != null && !imageFile.isEmpty()) {

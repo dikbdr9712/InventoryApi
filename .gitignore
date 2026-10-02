@@ -13,6 +13,9 @@ target/
 # Uploads (optional — usually not versioned)
 uploads/
 
+# Identity documents of sellers and drivers: NEVER commit these
+private-uploads/
+
 # Logs
 *.log
 

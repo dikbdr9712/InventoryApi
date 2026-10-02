@@ -41,6 +41,27 @@ public class User {
     @JoinColumn(name = "role_id", nullable = false)
     private Role role; // Default role
 
+    /** Switched off by an admin: cannot sign in, and is signed out at once. Empty (older rows) = active. */
+    @Column(name = "active")
+    private Boolean active = true;
+
+    @Column(name = "last_login_at")
+    private java.time.Instant lastLoginAt;
+
+    @Column(name = "created_at")
+    private java.time.Instant createdAt;
+
+    public boolean isActive() {
+        return !Boolean.FALSE.equals(active);
+    }
+
+    @PrePersist
+    void onCreate() {
+        if (createdAt == null) {
+            createdAt = java.time.Instant.now();
+        }
+    }
+
 	public Long getId() {
 		return id;
 	}

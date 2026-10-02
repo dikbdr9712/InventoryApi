@@ -5,6 +5,7 @@ import com.api.inventory.dto.PaymentRequestDTO;
 import com.api.inventory.entity.Payment;
 import com.api.inventory.service.PaymentService;
 import com.api.inventory.service.OrderService;
+import com.api.inventory.security.OrderAccess;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,11 +20,18 @@ public class PaymentController {
     private PaymentService paymentService;
     @Autowired
     private OrderService orderService;
+    @Autowired
+    private OrderAccess orderAccess;
 
     // ✅ Create a new payment (called after user selects payment method)
+    // Only the customer who placed the order may pay for it (no staff permission is passed on purpose).
     @PostMapping
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Payment> createPayment(@RequestBody PaymentRequestDTO dto) {
+        if (dto == null || dto.getOrderId() == null) {
+            throw new IllegalStateException("Order number is missing.");
+        }
+        orderAccess.requireOwnerOrPermission(dto.getOrderId());
         Payment payment = paymentService.createPayment(dto);
         return ResponseEntity.ok(payment);
     }

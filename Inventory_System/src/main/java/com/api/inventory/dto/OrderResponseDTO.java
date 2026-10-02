@@ -53,6 +53,21 @@ public class OrderResponseDTO {
     
     
 	
+	// Delivery details and the shop's message, for the customer's order page (only the owner or staff can read an order)
+	private String customerName;
+	private String customerPhone;
+	private String address;
+	private String note;
+	private String paymentMethod;
+	private BigDecimal deliveryFee;
+
+	public String getCustomerName() { return customerName; }
+	public String getCustomerPhone() { return customerPhone; }
+	public String getAddress() { return address; }
+	public String getNote() { return note; }
+	public String getPaymentMethod() { return paymentMethod; }
+	public BigDecimal getDeliveryFee() { return deliveryFee; }
+
 	public static OrderResponseDTO fromEntity(Order order) {
 	    if (order == null) {
 	        return null;
@@ -64,6 +79,12 @@ public class OrderResponseDTO {
 	    dto.setPaymentStatus(order.getPaymentStatus());
 	    dto.setTotalAmount(order.getTotalAmount());
 	    dto.setCreatedAt(order.getCreatedAt());
+	    dto.customerName = order.getCustomerName();
+	    dto.customerPhone = order.getCustomerPhone();
+	    dto.address = order.getAddress();
+	    dto.note = order.getNote();
+	    dto.paymentMethod = order.getPaymentMethod();
+	    dto.deliveryFee = order.getDeliveryFee();
 	    return dto;
 	}
 

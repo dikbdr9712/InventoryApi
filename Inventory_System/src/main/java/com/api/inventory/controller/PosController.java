@@ -17,6 +17,44 @@ public class PosController {
     @Autowired
     private OrderService orderService;
 
+    @Autowired
+    private com.api.inventory.service.PosShiftService shifts;
+
+    // ---------- Cash drawer shifts ----------
+
+    /** The signed-in cashier's open shift (204 = no open shift: the till asks them to open one). */
+    @GetMapping("/shifts/current")
+    @PreAuthorize("hasAuthority('pos.use')")
+    public ResponseEntity<com.api.inventory.service.PosShiftService.ShiftReport> currentShift() {
+        return shifts.myCurrent().map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    @PostMapping("/shifts/open")
+    @PreAuthorize("hasAuthority('pos.use')")
+    public com.api.inventory.service.PosShiftService.ShiftReport openShift(@RequestBody(required = false) com.api.inventory.service.PosShiftService.OpenRequest request) {
+        return shifts.open(request);
+    }
+
+    @PostMapping("/shifts/{id}/close")
+    @PreAuthorize("hasAuthority('pos.use')")
+    public com.api.inventory.service.PosShiftService.ShiftReport closeShift(@PathVariable Long id,
+                                                                            @RequestBody com.api.inventory.service.PosShiftService.CloseRequest request) {
+        return shifts.close(id, request);
+    }
+
+    /** My shifts; everyone's with pos.shifts.manage. */
+    @GetMapping("/shifts")
+    @PreAuthorize("hasAuthority('pos.use')")
+    public List<com.api.inventory.service.PosShiftService.ShiftReport> listShifts() {
+        return shifts.list();
+    }
+
+    @GetMapping("/shifts/{id}")
+    @PreAuthorize("hasAuthority('pos.use')")
+    public com.api.inventory.service.PosShiftService.ShiftReport shift(@PathVariable Long id) {
+        return shifts.get(id);
+    }
+
     @GetMapping("/history")
     @PreAuthorize("hasAuthority('pos.use')")
     public ResponseEntity<List<PosSaleResponseDTO>> getPosSalesHistory() {
@@ -30,6 +68,8 @@ public class PosController {
     private PosSaleResponseDTO convertToDto(Order order) {
         PosSaleResponseDTO dto = new PosSaleResponseDTO();
         dto.setOrderId(order.getOrderId());
+        dto.setCashier(order.getCashier());
+        dto.setShiftId(order.getShiftId());
         dto.setCustomerName(order.getCustomerName());
         dto.setCustomerPhone(order.getCustomerPhone());
         dto.setCustomerEmail(order.getCustomerEmail());
