@@ -48,6 +48,9 @@ public class AuthController {
     private AccessControlService access;
 
     @Autowired
+    private com.api.inventory.service.PasswordResetService passwordReset;
+
+    @Autowired
     private com.api.inventory.service.LegalTermsService legal;
 
     @Autowired
@@ -121,6 +124,7 @@ public class AuthController {
         HttpSession session = httpRequest.getSession(true);
         session.setAttribute("userEmail", user.getEmail());
         session.setAttribute("userRole", user.getRole().getName());
+        session.setAttribute(com.api.inventory.security.SessionAuthenticationFilter.PASSWORD_STAMP, user.passwordStamp());
 
         return ResponseEntity.ok(toDto(user));
     }
@@ -152,7 +156,7 @@ public class AuthController {
     /** The signed-in person changes their own password (for example one an admin gave them). */
     @PostMapping("/change-password")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequest request) {
+    public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequest request, HttpServletRequest httpRequest) {
         User user = userRepository.findByEmail(CurrentUser.email()).orElse(null);
         if (user == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Please sign in.");
@@ -172,8 +176,40 @@ public class AuthController {
         }
 
         user.setPassword(passwordEncoder.encode(next));
+        user.setPasswordChangedAt(java.time.Instant.now());
         userRepository.save(user);
-        return ResponseEntity.ok(Map.of("message", "Your password has been changed."));
+        // this browser stays signed in; every other place where the account was signed in is signed out
+        HttpSession session = httpRequest.getSession(false);
+        if (session != null) {
+            session.setAttribute(com.api.inventory.security.SessionAuthenticationFilter.PASSWORD_STAMP, user.passwordStamp());
+        }
+        return ResponseEntity.ok(Map.of("message", "Your password has been changed. Other devices were signed out."));
+    }
+
+    // ================= Forgot password =================
+
+    /** Sends a reset link by email. The answer is the same whether or not the email has an account. */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body, HttpServletRequest httpRequest) {
+        passwordReset.request(body == null ? null : body.get("email"), clientIp(httpRequest));
+        return ResponseEntity.ok(Map.of("message",
+                "If an account uses that email, we have sent it a link to choose a new password. The link works for 30 minutes."));
+    }
+
+    /** Is this link still good? (The page shows the form, or explains that the link expired.) */
+    @GetMapping("/reset-password/check")
+    public Map<String, Boolean> checkResetLink(@RequestParam String token) {
+        return Map.of("valid", passwordReset.isValid(token));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> body) {
+        passwordReset.reset(body == null ? null : body.get("token"), body == null ? null : body.get("newPassword"), MIN_PASSWORD_LENGTH);
+        return ResponseEntity.ok(Map.of("message", "Your password has been changed. Sign in with the new password."));
+    }
+
+    private static String clientIp(HttpServletRequest request) {
+        return request.getRemoteAddr(); // behind the proxy, server.forward-headers-strategy makes this the visitor's address
     }
 
     private CurrentUserDTO toDto(User user) {

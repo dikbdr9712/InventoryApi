@@ -15,7 +15,6 @@ import com.api.inventory.entity.Payment;
 import com.api.inventory.exception.ResourceNotFoundException;
 import com.api.inventory.repository.ItemMasterRepository;
 import com.api.inventory.repository.OrderItemRepository;
-import com.api.inventory.service.EmailService;
 import com.api.inventory.service.OrderService;
 import com.api.inventory.service.PaymentService;
 
@@ -42,7 +41,7 @@ public class OrderController {
     @Autowired
     private PaymentService paymentService;
     @Autowired
-    private EmailService emailService;
+    private com.api.inventory.service.NotificationService notify;
     @Autowired
     private OrderAccess orderAccess;
     @Autowired
@@ -184,13 +183,17 @@ public class OrderController {
             order.setPaymentStatus(request.getPaymentStatus());
         }
 
-        // Send email only on CONFIRMED
-        if (confirmedNow) {
-            emailService.sendEmail(
-                    order.getCustomerEmail(),
-                    "Your Order #" + order.getOrderId() + " is Confirmed!",
-                    "Thank you! Your payment has been verified. We’ll process your order shortly."
-            );
+        // The customer hears about a refused payment or a question (a confirmed one is told by the packages)
+        String paymentStatus = request.getPaymentStatus() == null ? "" : request.getPaymentStatus().trim().toUpperCase();
+        String reason = request.getNote() == null || request.getNote().isBlank() ? "" : " " + request.getNote().trim();
+        if (paymentStatus.equals("REJECTED") || paymentStatus.equals("FAILED")) {
+            notify.customer(order, new com.api.inventory.service.NotificationService.Note("PAYMENT_REFUSED",
+                    "We could not confirm your payment for order #" + orderId,
+                    "Please check the transfer and journal number, or contact us." + reason, "/orders/" + orderId), true, null);
+        } else if (paymentStatus.equals("PENDING_INFO")) {
+            notify.customer(order, new com.api.inventory.service.NotificationService.Note("PAYMENT_QUESTION",
+                    "We need more information about your payment for order #" + orderId,
+                    reason.isBlank() ? "Please contact us." : reason.trim(), "/orders/" + orderId), true, null);
         }
 
         Order updatedOrder = orderService.save(order);
@@ -248,15 +251,8 @@ public class OrderController {
         order.setUpdatedBy(updatedBy);
         order.setUpdatedAt(LocalDateTime.now());
 
-        // Save and send email
+        // Save (the customer is told by the packages when the order is paid and confirmed)
         Order updatedOrder = orderService.save(order);
-
-        emailService.sendEmail(
-                order.getCustomerEmail(),
-                "Your Order #" + order.getOrderId() + " is Confirmed!",
-                "Thank you! Your payment has been verified. We’ll process your order shortly."
-        );
-
         return ResponseEntity.ok(updatedOrder);
     }
 

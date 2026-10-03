@@ -346,6 +346,7 @@ public class AdminController {
             password.append(PASSWORD_CHARS.charAt(RANDOM.nextInt(PASSWORD_CHARS.length())));
         }
         user.setPassword(passwordEncoder.encode(password.toString()));
+        user.setPasswordChangedAt(Instant.now()); // signed out everywhere: only the new password works
         users.save(user);
         audit.record("USER_PASSWORD_RESET", who(user), null);
         return new TemporaryPassword(password.toString());

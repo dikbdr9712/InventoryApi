@@ -29,6 +29,9 @@ import java.util.List;
  */
 public class SessionAuthenticationFilter extends OncePerRequestFilter {
 
+    /** Session attribute: the password's "last changed" time when this session signed in. */
+    public static final String PASSWORD_STAMP = "pwdStamp";
+
     private final UserRepository users;
     private final AccessControlService access;
 
@@ -46,8 +49,12 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
 
         if (email instanceof String signedInEmail) {
             User user = users.findByEmail(signedInEmail).orElse(null);
+            Object stamp = session.getAttribute(PASSWORD_STAMP);
+            long sessionStamp = stamp instanceof Long l ? l : 0L;
             if (user == null || !user.isActive() || user.getRole() == null) {
                 session.invalidate(); // deleted or switched off: signed out now
+            } else if (sessionStamp < user.passwordStamp()) {
+                session.invalidate(); // the password changed since this session signed in (reset, or changed elsewhere)
             } else {
                 String roleName = user.getRole().getName().trim().toUpperCase();
                 session.setAttribute("userRole", roleName);

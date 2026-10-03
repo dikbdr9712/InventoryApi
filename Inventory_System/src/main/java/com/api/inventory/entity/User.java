@@ -51,6 +51,15 @@ public class User {
     @Column(name = "created_at")
     private java.time.Instant createdAt;
 
+    /** When the password last changed. Sessions started before it are signed out (see SessionAuthenticationFilter). */
+    @Column(name = "password_changed_at")
+    private java.time.Instant passwordChangedAt;
+
+    /** A number stored in the session at sign-in: a later password change makes older sessions invalid. */
+    public long passwordStamp() {
+        return passwordChangedAt == null ? 0L : passwordChangedAt.toEpochMilli();
+    }
+
     public boolean isActive() {
         return !Boolean.FALSE.equals(active);
     }

@@ -2,6 +2,7 @@ package com.api.inventory.config;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
@@ -15,17 +16,18 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 public class CorsConfig {
 
+    /**
+     * Which websites may call the API from a browser. On a server set APP_CORS_ALLOWED_ORIGINS, for example
+     * https://dkphar.bt,https://www.dkphar.bt (not needed when the site and the API share one address behind Nginx).
+     * The default covers a developer's computer: any local port, plus two local network addresses.
+     */
+    @Value("${app.cors.allowed-origins:http://localhost:[*],http://127.0.0.1:[*],http://192.168.123.30:4200,http://192.168.137.1:4200}")
+    private List<String> allowedOrigins;
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-
-        // Updated to allow your local network IP alongside localhost
-        config.setAllowedOriginPatterns(List.of(
-                "http://localhost:[*]",        // any local dev port (ng serve may not get 4200)
-                "http://127.0.0.1:[*]",
-                "http://192.168.123.30:4200",  // Your main PC local IP address
-                "http://192.168.137.1:4200"    // Your secondary network IP address
-        ));
+        config.setAllowedOriginPatterns(allowedOrigins.stream().map(String::trim).filter(s -> !s.isEmpty()).toList());
 
         // Send the login session cookie with requests
         config.setAllowCredentials(true);

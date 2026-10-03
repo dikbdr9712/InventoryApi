@@ -40,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.*;
         "spring.datasource.username=sa",
         "spring.datasource.password=",
         "spring.jpa.hibernate.ddl-auto=create-drop",
+        "spring.flyway.enabled=false", // the migrations are MySQL; tests build the tables from the code
         "spring.jpa.show-sql=false",
         "app.private-upload-dir=target/test-private-uploads",
         // the sales report query uses MySQL's DATE() typing; build repositories on first use so H2 never checks it

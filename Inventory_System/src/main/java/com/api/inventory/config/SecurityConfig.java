@@ -44,12 +44,15 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
                         // public: signing in and up
-                        .requestMatchers("/api/auth/login", "/api/auth/signup", "/api/auth/logout", "/api/auth/me").permitAll()
+                        .requestMatchers("/api/auth/login", "/api/auth/signup", "/api/auth/logout", "/api/auth/me",
+                                "/api/auth/forgot-password", "/api/auth/reset-password", "/api/auth/reset-password/check").permitAll()
                         // public: the shop window
                         .requestMatchers(HttpMethod.GET, "/api/items/allItems", "/api/items/*", "/api/items/stock/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/marketplace/settings").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/delivery/areas").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/delivery/quote").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/online-payments/options").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/online-payments/callback/*").permitAll()   // the gateway, checked by its signature
                         .requestMatchers(HttpMethod.GET, "/api/legal/terms/*", "/api/legal/terms/*/versions/*").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/contact").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()

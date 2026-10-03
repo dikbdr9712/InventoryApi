@@ -27,6 +27,8 @@ public class PaymentServiceImpl implements PaymentService {
     private OrderRepository orderRepository;
 	@Autowired
 	private TransactionRepository transactionRepository;
+	@Autowired
+	private com.api.inventory.service.NotificationService notify;
 	/**
 	 * The customer says "I am paying for this order". The SERVER decides the amount (the order's real total)
 	 * and the status ("pending" until staff check it). Amount, status and transactionId sent by the browser are ignored.
@@ -71,7 +73,11 @@ public class PaymentServiceImpl implements PaymentService {
 	    payment.setPaymentDate(LocalDateTime.now());
 	    payment.setJournalNumber(dto.getJournalNumber());
 
-	    return paymentRepository.save(payment);
+	    Payment saved = paymentRepository.save(payment);
+	    notify.withPermission("payments.verify", new com.api.inventory.service.NotificationService.Note("PAYMENT_TO_CHECK",
+	            "Payment to check: order #" + order.getOrderId(),
+	            "Nu. " + total + " by bank transfer, journal number " + dto.getJournalNumber().trim() + ".", "/order-verification"), false);
+	    return saved;
 	}
 
     @Override

@@ -50,6 +50,13 @@ public class PackageService {
         this.legal = legal;
     }
 
+    private NotificationService notify;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void setNotify(NotificationService notify) {
+        this.notify = notify;
+    }
+
     public PackageService(OrderPackageRepository packages, OrderItemRepository orderItems, OrderRepository orders,
                           ItemMasterRepository itemsRepo, SellerProfileRepository sellers, RiderProfileRepository riders,
                           LedgerEntryRepository ledger, MarketplaceService marketplace, DeliveryPricingService pricing) {
@@ -148,11 +155,27 @@ public class PackageService {
     /** The order's payment was verified: the sellers can start packing. Safe to call twice. */
     @Transactional
     public void markOrderPaid(Long orderId) {
-        for (OrderPackage p : packages.findByOrderIdOrderByIdAsc(orderId)) {
+        List<OrderPackage> list = packages.findByOrderIdOrderByIdAsc(orderId);
+        boolean changed = false;
+        for (OrderPackage p : list) {
             if (OrderPackage.PENDING_PAYMENT.equals(p.getStatus())) {
                 p.setStatus(OrderPackage.TO_PACK);
                 packages.save(p);
+                changed = true;
+                NotificationService.Note toPack = new NotificationService.Note("NEW_ORDER", "New order to pack: #" + orderId,
+                        "Items worth Nu. " + p.getItemsSubtotal() + ". Pack it and press Packed, a rider will collect it.",
+                        p.getSellerId() == null ? "/admin/deliveries" : "/seller");
+                if (p.getSellerId() == null) {
+                    notify.withPermission("orders.fulfil", toPack, false);
+                } else {
+                    notify.seller(p.getSellerId(), toPack, true);
+                }
             }
+        }
+        if (changed || list.isEmpty()) {
+            orders.findById(orderId).ifPresent(order -> notify.customer(order, new NotificationService.Note("ORDER_PAID",
+                    "Payment received: order #" + orderId + " is confirmed",
+                    "Thank you. We are getting your order ready and will tell you when it is on the way.", "/orders/" + orderId), true, null));
         }
     }
 
@@ -166,10 +189,17 @@ public class PackageService {
         }
         for (OrderPackage p : packages.findByOrderIdOrderByIdAsc(orderId)) {
             if (!OrderPackage.CANCELLED.equals(p.getStatus())) {
+                boolean wasPaid = !OrderPackage.PENDING_PAYMENT.equals(p.getStatus());
                 p.setStatus(OrderPackage.CANCELLED);
                 p.setCancelledAt(Instant.now());
                 p.setUpdatedBy(CurrentUser.email());
                 packages.save(p);
+                if (wasPaid) {
+                    NotificationService.Note stop = new NotificationService.Note("ORDER_CANCELLED", "Order #" + orderId + " was cancelled",
+                            "Do not pack or hand over this package.", p.getSellerId() == null ? "/admin/deliveries" : "/seller");
+                    notify.seller(p.getSellerId(), stop, true);
+                    notify.rider(p.getRiderId(), stop, false);
+                }
             }
         }
     }
@@ -209,7 +239,15 @@ public class PackageService {
         p.setStatus(OrderPackage.READY_FOR_PICKUP);
         p.setPackedAt(Instant.now());
         p.setUpdatedBy(CurrentUser.email());
-        return view(packages.save(p), staff ? Audience.STAFF : Audience.SELLER);
+        OrderPackage saved = packages.save(p);
+
+        DeliverySize size = DeliverySize.of(saved.getDeliverySize());
+        SellerProfile from = saved.getSellerId() == null ? null : sellers.findById(saved.getSellerId()).orElse(null);
+        notify.ridersWhoCanCarry(size, new NotificationService.Note("NEW_JOB", "New delivery job: Nu. " + saved.getRiderPay(),
+                "Collect from " + (from == null ? "DK/Phar" : from.getShopName() + (from.getTown() == null ? "" : ", " + from.getTown()))
+                        + " · " + size.label + (saved.getDistanceKm() == null ? "" : " · " + saved.getDistanceKm().stripTrailingZeros().toPlainString() + " km")
+                        + ". First come, first served.", "/rider"));
+        return view(saved, staff ? Audience.STAFF : Audience.SELLER);
     }
 
     // ================= Rider =================
@@ -264,7 +302,15 @@ public class PackageService {
         p.setStatus(OrderPackage.ASSIGNED);
         p.setAssignedAt(Instant.now());
         p.setUpdatedBy(CurrentUser.email());
-        return view(packages.save(p), Audience.RIDER);
+        OrderPackage saved = packages.save(p);
+
+        String riderName = rider.getUser().getName();
+        orders.findById(saved.getOrderId()).ifPresent(order -> notify.customer(order, new NotificationService.Note("RIDER_ASSIGNED",
+                "A rider is collecting your order #" + saved.getOrderId(),
+                riderName + " (" + rider.getVehicleType() + ") is on the way to the shop.", "/orders/" + saved.getOrderId()), false, null));
+        notify.seller(saved.getSellerId(), new NotificationService.Note("RIDER_ASSIGNED", "Rider coming for order #" + saved.getOrderId(),
+                riderName + " will collect the package" + (rider.getPhone() == null ? "." : ". Phone: " + rider.getPhone()), "/seller"), false);
+        return view(saved, Audience.RIDER);
     }
 
     /** The rider cannot do the job after all: it goes back on the board. */
@@ -306,7 +352,15 @@ public class PackageService {
                 order.setUpdatedBy(CurrentUser.email());
                 orders.save(order);
             }
+            notify.customer(order, new NotificationService.Note("ON_THE_WAY", "Your order #" + order.getOrderId() + " is on the way",
+                    "Give the rider your delivery code " + p.getDeliveryCode() + " when you receive it. Do not share it before.",
+                    "/orders/" + order.getOrderId()), true,
+                    "DK/Phar: order #" + order.getOrderId() + " is on the way. Give the rider code " + p.getDeliveryCode() + " at the door.");
         });
+        if (p.getSellerId() != null) {
+            notify.seller(p.getSellerId(), new NotificationService.Note("PICKED_UP", "Package for order #" + p.getOrderId() + " collected",
+                    "The rider has it. Your money is booked when it is delivered.", "/seller"), false);
+        }
         return view(p, staff ? Audience.STAFF : Audience.RIDER);
     }
 
@@ -347,6 +401,18 @@ public class PackageService {
                 order.setUpdatedBy(CurrentUser.email());
                 orders.save(order);
             });
+        }
+        orders.findById(p.getOrderId()).ifPresent(order -> notify.customer(order, new NotificationService.Note("DELIVERED",
+                done ? "Order #" + order.getOrderId() + " delivered" : "Part of order #" + order.getOrderId() + " delivered",
+                "Thank you for shopping with DK/Phar." + (done ? "" : " The rest comes in a separate package."),
+                "/orders/" + order.getOrderId()), true, null));
+        if (p.getSellerId() != null && p.getSellerEarning().signum() > 0) {
+            notify.seller(p.getSellerId(), new NotificationService.Note("EARNED", "Delivered: Nu. " + p.getSellerEarning() + " earned",
+                    "Order #" + p.getOrderId() + " reached the customer. It is added to what we owe you.", "/seller"), true);
+        }
+        if (p.getRiderId() != null && p.getRiderPay().signum() > 0) {
+            notify.rider(p.getRiderId(), new NotificationService.Note("EARNED", "Nu. " + p.getRiderPay() + " added to your earnings",
+                    "Delivery of order #" + p.getOrderId() + " done.", "/rider"), false);
         }
         return view(p, staff ? Audience.STAFF : Audience.RIDER);
     }

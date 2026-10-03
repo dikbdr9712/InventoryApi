@@ -18,10 +18,19 @@ public class TransactionRequestDTO {
     private String itemName;          // Required if new item
     private String description;       // Optional
     private String uom;               // Optional (default: "pcs")
-    private BigDecimal pricePerUnit;  // Optional — cost price
+    private BigDecimal pricePerUnit;  // Optional — older name for a new product's selling price
+    /** A new product's selling price (the restock page). */
+    private BigDecimal sellingPrice;
     private String barcode;           // Optional
     private String supplierItemCode;  // Optional — supplier's SKU
     private String supplier;
+
+    // The delivery's batch (pharmacy packs carry both). Optional: empty = not tracked for this product.
+    private String batchNo;
+    private java.time.LocalDate expiryDate;
+
+    /** Optional: change the product's selling price at the same time (for example the new stock cost more). */
+    private BigDecimal newSellingPrice;
     
     
 	public Long getItemId() {

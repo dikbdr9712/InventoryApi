@@ -26,6 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.datasource.username=sa",
         "spring.datasource.password=",
         "spring.jpa.hibernate.ddl-auto=create-drop",
+        "spring.flyway.enabled=false", // the migrations are MySQL; tests build the tables from the code
         "spring.jpa.show-sql=false",
         "app.private-upload-dir=target/test-private-uploads",
         "spring.data.jpa.repositories.bootstrap-mode=lazy"
@@ -76,6 +77,7 @@ class SecurityHttpTest {
         http.perform(get("/api/orders/1/returnable")).andExpect(status().isUnauthorized());
         http.perform(get("/api/customers/lookup").param("phone", "17000000")).andExpect(status().isUnauthorized());
         http.perform(get("/api/delivery/admin/areas")).andExpect(status().isUnauthorized());
+        http.perform(get("/api/stock/batches")).andExpect(status().isUnauthorized());
         http.perform(put("/api/seller/location").contentType(MediaType.APPLICATION_JSON).content("{}")).andExpect(status().isUnauthorized());
     }
 
@@ -122,6 +124,8 @@ class SecurityHttpTest {
         http.perform(get("/api/legal/terms/SELLER")).andExpect(status().isOk()).andExpect(jsonPath("$.version").value(1));
         http.perform(get("/api/legal/terms/DRIVER")).andExpect(status().isOk());
         http.perform(get("/api/legal/admin/terms").session(session)).andExpect(status().isForbidden());
+        http.perform(get("/api/stock/summary").session(session)).andExpect(status().isForbidden());   // costs are not for customers
+        http.perform(get("/api/stock/profit").param("from", "2026-01-01").param("to", "2026-01-31").session(session)).andExpect(status().isForbidden());
         http.perform(post("/api/delivery/admin/areas").session(session).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"X\",\"town\":\"Y\",\"latitude\":27.4,\"longitude\":89.6}")).andExpect(status().isForbidden());
 

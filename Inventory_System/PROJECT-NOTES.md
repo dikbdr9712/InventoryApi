@@ -364,3 +364,70 @@ POS:
 - On touch screens the search box is no longer focused automatically after each tap (that kept popping the
   keyboard up); it still is with a mouse, with F2, and when typing or scanning.
 - Removed 82 unused CSS rules of the old sale panel (pos.css 47 kB -> 41 kB raw).
+
+## 20. Ready for a live server: database files, secrets, Flyway, emails, notifications, online payments (2 Oct 2026)
+Database (D:\Inventory\database, read README.md there):
+- 01-create-database-and-user.sql (new server: database utf8mb4 + app account with only the rights it needs),
+  02-first-admin.sql (promote the owner's signed-up account), upgrade-existing-database.sql (databases made before
+  Flyway: adds 4 tables + 29 columns, only adds, safe to run twice), backup.sh / backup.ps1 (database + uploads, 14 days).
+- Flyway now builds the tables: Inventory_System/src/main/resources/db/migration/V1__initial_schema.sql (generated from
+  the entities for MySQL 8). ddl-auto=validate: Hibernate only checks. New table changes = new V2__...sql file.
+  Tested on 2 Oct: empty database -> V1 applied, app started, roles/agreements/settings created by the app;
+  copy of inventorydb's structure + upgrade script -> baselined at V1, started; without the upgrade -> refuses to
+  start with "Schema validation: missing table [delivery_areas]". Temporary test databases were dropped.
+- The dev inventorydb still needs upgrade-existing-database.sql once (it was not restarted after the delivery work).
+Secrets:
+- The MySQL root password was in application.properties in the PUBLIC GitHub repo. Moved to
+  Inventory_System/secrets.properties (git-ignored, imported by spring.config.import). CHANGE the MySQL password
+  (it is still in the git history) and put the new one in secrets.properties. Server: environment variables
+  (deploy/dkphar.env.example). application-prod.properties: secure cookie, forwarded headers, no test payments, INFO logs.
+- CORS origins: app.cors.allowed-origins / APP_CORS_ALLOWED_ORIGINS (not needed behind Nginx on one address).
+Deploy: D:\Inventory\DEPLOY.md + deploy/nginx-dkphar.conf (HTTPS, /api and /uploads to 8080) + deploy/dkphar.service.
+Frontend: environment imageBase '' everywhere; proxy.conf.json now also forwards /uploads.
+Fixes and features (backend tests: 13, all pass, incl. GoLiveFeaturesTest):
+- Product photos: ProductPhotos gives each photo its own name (item-12-ab12cd34.jpg; before, products with the same
+  name shared one file), checks the real type from the first bytes (JPG/PNG/WEBP/GIF), 5 MB, deletes the product's old one.
+- Forgot password: /forgot-password and /reset-password pages; link by email, SHA-256 of the token stored, 30 min,
+  works once, 3 per account and 10 per IP per hour, same answer for unknown emails. Any password change (reset,
+  change-password, admin reset) signs the account out everywhere else (users.password_changed_at + session stamp).
+- Email: real SMTP when app.mail.enabled=true + spring.mail.*; otherwise written to the log (dev). Sent in the
+  background after the transaction commits. SMS: SmsService with a provider URL template, off by default.
+- Notifications: table notifications, bell in the top bar (unread count every minute), NotificationService hooks:
+  order placed / paid / rider assigned / on the way (SMS with the delivery code) / delivered / cancelled, payment
+  refused or question, payment to check (staff), new order to pack (seller or staff), new job (riders whose vehicle
+  fits), earnings, payouts, applications and decisions. Old ones deleted after 90 days.
+- Online payments: PaymentGateway interface + SandboxGateway (test page /pay/test, on in dev, off in prod) +
+  OnlinePaymentService (attempts in payment_intents, server-side amount, idempotent, a paid attempt confirms the order
+  exactly like a verified transfer; wrong amount / cancelled order / sold out -> staff are told). Payment page offers
+  "Pay online now" or "Bank transfer"; /payment/result asks the server how it went; order details show "Pay now" for
+  unpaid orders. A real gateway (RMA or a bank) needs a merchant account + its documents + one class (see PaymentGateway).
+
+## 21. Old and new stock: batches, expiry, real cost and profit (2 Oct 2026)
+Before: one stock counter per product; a restock only added to it; the cost price never changed; no expiry.
+Now (backend StockService, the ONLY place stock moves):
+- Every delivery is a batch (stock_batches): its own cost, batch/lot number, expiry date, supplier.
+- Sales take the batch that expires first (FEFO; undated last, oldest first). Each sold line records which batches
+  (order_item_batches) and its real cost (order_items.unit_cost). Returns and cancelled orders go back into the
+  same batches. Recall question "who bought batch X?" can be answered from order_item_batches.
+- Expired stock is never sold: checked before every sale, and every night 00:05 (Asia/Thimphu) expired batches are
+  taken off sale (transaction EXPIRED) and staff with stock.restock are told; Mondays 08:00 they hear what expires
+  within 30 days. Receiving an already expired batch is refused.
+- Restock page: batch number + expiry (optional), the margin at the new cost vs the last cost, a warning when a sale
+  would lose money, and "change the selling price" (suggested price keeps the old margin). The product's cost price
+  follows the latest purchase; older stock keeps its own cost. Fixed: a new product's selling price from the restock
+  page was ignored (sellingPrice vs pricePerUnit).
+- Stock page /admin/stock (Products > Stock & expiry): on the shelf / expiring soon / expired, stock value at cost,
+  edit batch number or date, write off (with a reason, transaction WRITE_OFF), count a product (more = new batch,
+  fewer = taken first-to-expire first).
+- Sales dashboard: profit on our own products = sold (before tax) - exact batch cost - returns - expired/written off.
+  Marketplace sellers' products are not counted (not ours).
+- Existing stock: at start-up every product's stock without batches becomes one OPENING batch at its cost price
+  (StockService.reconcile); a sale that finds stock without a batch books it the same way instead of failing.
+- Database: V2__stock_batches.sql (Flyway applies it). Tested: empty database (V1+V2) and a full copy of inventorydb
+  (upgrade script -> baseline 1 -> V2 -> 7 opening batches = 175 units, 0 mismatches). Copies dropped.
+- Tests: StockBatchTest (FEFO and cost, expiry, counts/write-offs/opening, restock at a new price, exact profit).
+  Backend: 18 tests, all pass.
+Fix (2 Oct 2026, evening): IntelliJ runs the backend with the working folder D:\Inventory (not Inventory_System),
+so uploads/ and private-uploads/ live in D:\Inventory and "./secrets.properties" was not found ("Access denied ...
+using password: NO"). application.properties now imports ./secrets.properties AND ./Inventory_System/secrets.properties.
+Tested by starting the jar from D:\Inventory. database/backup.ps1 now saves the upload folders of both places.

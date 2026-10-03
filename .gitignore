@@ -25,3 +25,9 @@ Thumbs.db
 
 # VSCode (if used)
 .vscode/
+
+# Passwords and keys for one computer or server: NEVER commit these
+secrets.properties
+**/secrets.properties
+*.env
+backups/

@@ -27,6 +27,10 @@ public class OrderItem {
     @Column(nullable = false)
     private BigDecimal unitPrice;
 
+    /** What one cost us: the average cost of the batches this line was taken from (empty until stock is taken). */
+    @Column(precision = 12, scale = 2)
+    private BigDecimal unitCost;
+
     /** The OrderPackage this line travels in (online orders since the marketplace; empty on older orders and counter sales). */
     private Long packageId;
 

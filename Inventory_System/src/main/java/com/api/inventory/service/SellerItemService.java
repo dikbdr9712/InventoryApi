@@ -32,12 +32,17 @@ import java.util.Map;
 @Service
 public class SellerItemService {
 
-    private static final long MAX_IMAGE_BYTES = 5L * 1024 * 1024;
-    private static final Map<String, String> IMAGE_TYPES = Map.of("image/jpeg", "jpg", "image/png", "png", "image/webp", "webp");
 
     private final ItemMasterRepository items;
     private final InventoryStockRepository stock;
     private final TransactionRepository transactions;
+
+    private StockService stockService;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void setStockService(StockService stockService) {
+        this.stockService = stockService;
+    }
 
     public SellerItemService(ItemMasterRepository items, InventoryStockRepository stock, TransactionRepository transactions) {
         this.items = items;
@@ -167,7 +172,8 @@ public class SellerItemService {
         if (delta == 0) {
             return;
         }
-        stock.adjustStockByDelta(item.getItemId(), delta);
+        stockService.setCount(item.getItemId(), quantity, BigDecimal.ZERO, com.api.inventory.entity.StockBatch.SELLER,
+                "Seller " + seller.getShopName() + " set the stock");
 
         Transaction tx = new Transaction();
         tx.setItemId(item.getItemId());
@@ -183,26 +189,9 @@ public class SellerItemService {
     }
 
     /** Each seller photo gets its own file name, so one shop can never overwrite another shop's picture. */
+    /** The photo gets its own file name and its real type is checked (see ProductPhotos). */
     private static void saveImage(ItemMaster item, MultipartFile image) {
-        if (image == null || image.isEmpty()) {
-            return;
-        }
-        String ext = IMAGE_TYPES.get(image.getContentType() == null ? "" : image.getContentType().toLowerCase());
-        if (ext == null) {
-            throw new IllegalStateException("The photo must be a JPG, PNG or WEBP image.");
-        }
-        if (image.getSize() > MAX_IMAGE_BYTES) {
-            throw new IllegalStateException("The photo is too big (at most 5 MB).");
-        }
-        try (InputStream in = image.getInputStream()) {
-            Path dir = Paths.get(System.getProperty("user.dir"), "uploads");
-            Files.createDirectories(dir);
-            String name = "seller" + item.getSellerId() + "-item" + item.getItemId() + "-" + System.currentTimeMillis() + "." + ext;
-            Files.copy(in, dir.resolve(name), StandardCopyOption.REPLACE_EXISTING);
-            item.setImagePath("/uploads/" + name);
-        } catch (IOException e) {
-            throw new IllegalStateException("The photo could not be saved. Please try again.");
-        }
+        item.setImagePath(ProductPhotos.save(item.getItemId(), image, item.getImagePath()));
     }
 
     private ItemMasterDTO toDto(ItemMaster item, SellerProfile seller) {

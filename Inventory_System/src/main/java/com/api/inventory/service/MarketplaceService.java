@@ -40,6 +40,13 @@ public class MarketplaceService {
         this.audit = audit;
     }
 
+    private NotificationService notify;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void setNotify(NotificationService notify) {
+        this.notify = notify;
+    }
+
     @org.springframework.beans.factory.annotation.Autowired
     void setLegal(LegalTermsService legal, PartnerDocumentService documents) {
         this.legal = legal;
@@ -212,6 +219,8 @@ public class MarketplaceService {
         var accepted = legal.accept(email, com.api.inventory.entity.LegalTerms.SELLER, form.acceptedTermsVersion(), request);
         saved.setTermsVersion(accepted.getVersion());
         saved.setTermsAcceptedAt(accepted.getAcceptedAt());
+        notify.withPermission("marketplace.manage", new NotificationService.Note("NEW_APPLICATION",
+                "New seller application: " + saved.getShopName(), "Check the documents and approve or refuse it.", "/admin/marketplace"), false);
         return view(sellers.save(saved));
     }
 
@@ -285,6 +294,9 @@ public class MarketplaceService {
         var accepted = legal.accept(email, com.api.inventory.entity.LegalTerms.RIDER, form.acceptedTermsVersion(), request);
         saved.setTermsVersion(accepted.getVersion());
         saved.setTermsAcceptedAt(accepted.getAcceptedAt());
+        notify.withPermission("marketplace.manage", new NotificationService.Note("NEW_APPLICATION",
+                "New driver application: " + saved.getUser().getName(), saved.getVehicleType() + ", " + saved.getTown() + ". Check the documents.",
+                "/admin/marketplace"), false);
         return view(riders.save(saved));
     }
 
@@ -428,6 +440,7 @@ public class MarketplaceService {
         seller.setReviewedBy(by);
         changeRole(seller.getUser(), status, "SELLER");
         audit.record("SELLER_" + status, "seller " + seller.getId() + " (" + seller.getShopName() + ")", seller.getStatusNote());
+        notify.user(seller.getUser().getEmail(), decision("seller", status, seller.getStatusNote(), "/seller"), true);
         return view(sellers.save(seller));
     }
 
@@ -452,6 +465,7 @@ public class MarketplaceService {
         rider.setReviewedBy(by);
         changeRole(rider.getUser(), status, "RIDER");
         audit.record("RIDER_" + status, "rider " + rider.getId() + " (" + rider.getUser().getEmail() + ")", rider.getStatusNote());
+        notify.user(rider.getUser().getEmail(), decision("driver", status, rider.getStatusNote(), "/rider"), true);
         return view(riders.save(rider));
     }
 
@@ -545,6 +559,14 @@ public class MarketplaceService {
         entry.setCreatedBy(by);
         LedgerEntry saved = ledger.save(entry);
         audit.record("PAYOUT", type + " " + request.partyId(), "Nu. " + amount + ", reference " + entry.getNote());
+        NotificationService.Note paid = new NotificationService.Note("PAYOUT", "We sent you Nu. " + amount.setScale(2, RoundingMode.HALF_UP),
+                "Bank reference (journal number): " + entry.getNote() + ". It can take a day to show in your account.",
+                LedgerEntry.SELLER.equals(type) ? "/seller" : "/rider");
+        if (LedgerEntry.SELLER.equals(type)) {
+            notify.seller(request.partyId(), paid, true);
+        } else {
+            notify.rider(request.partyId(), paid, true);
+        }
         return new LedgerView(saved.getId(), saved.getEntryType(), saved.getAmount(), null, null, saved.getNote(), saved.getCreatedAt(), by);
     }
 
@@ -632,6 +654,19 @@ public class MarketplaceService {
     }
 
     // ================= Helpers =================
+
+    private static NotificationService.Note decision(String what, String status, String note, String link) {
+        String reason = note == null || note.isBlank() ? "" : " Reason: " + note;
+        return switch (status) {
+            case SellerProfile.APPROVED -> new NotificationService.Note("APPLICATION_APPROVED",
+                    "Welcome! Your " + what + " account is approved", "Sign in again if your new dashboard does not show yet.", link);
+            case SellerProfile.SUSPENDED -> new NotificationService.Note("ACCOUNT_SUSPENDED",
+                    "Your " + what + " account is paused", "Please contact us." + reason, link);
+            default -> new NotificationService.Note("APPLICATION_REFUSED",
+                    "Your " + what + " application was not approved", "You can correct it and send it again." + reason,
+                    "seller".equals(what) ? "/sell" : "/deliver");
+        };
+    }
 
     private void changeRole(User user, String status, String partnerRole) {
         String current = user.getRole() == null ? "" : user.getRole().getName().toUpperCase();

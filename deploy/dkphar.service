@@ -1,0 +1,26 @@
+# DK/Phar Inventory API as a Linux service (systemd).
+#   sudo cp deploy/dkphar.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now dkphar
+#   journalctl -u dkphar -f        (the log)
+[Unit]
+Description=DK/Phar Inventory API
+After=network.target mysql.service
+Wants=mysql.service
+
+[Service]
+User=dkphar
+Group=dkphar
+WorkingDirectory=/opt/dkphar
+EnvironmentFile=/etc/dkphar/dkphar.env
+ExecStart=/usr/bin/java -Xms256m -Xmx768m -jar /opt/dkphar/inventory.jar --spring.profiles.active=prod
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=10
+# hardening: the service can only write in its own folder
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/dkphar
+
+[Install]
+WantedBy=multi-user.target

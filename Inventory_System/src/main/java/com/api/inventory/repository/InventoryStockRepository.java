@@ -27,6 +27,17 @@ public interface InventoryStockRepository extends JpaRepository<InventoryStock, 
     @Query("UPDATE InventoryStock s SET s.currentQuantity = s.currentQuantity - :qty WHERE s.itemId = :itemId AND s.currentQuantity >= :qty")
     int takeIfAvailable(@Param("itemId") Long itemId, @Param("qty") Integer qty);
 
+    /** Available / Unavailable from the quantity, and the time of the change. */
+    @Modifying
+    @Transactional
+    @Query("UPDATE InventoryStock s SET s.status = CASE WHEN s.currentQuantity > 0 THEN 'Available' ELSE 'Unavailable' END, s.lastUpdated = :now WHERE s.itemId = :itemId")
+    void refreshStatus(@Param("itemId") Long itemId, @Param("now") java.time.LocalDateTime now);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE InventoryStock s SET s.currentQuantity = :qty WHERE s.itemId = :itemId")
+    void setQuantity(@Param("itemId") Long itemId, @Param("qty") Integer qty);
+
     @Modifying
     @Query("DELETE FROM InventoryStock s WHERE s.itemId = :itemId")
     void deleteByItemId(@Param("itemId") Long itemId);

@@ -76,6 +76,13 @@ public class SalesReturnService {
     @Value("${app.returns.window-days:7}")
     private int windowDays;
 
+    private StockService stockService;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void setStockService(StockService stockService) {
+        this.stockService = stockService;
+    }
+
     public SalesReturnService(SalesReturnRepository returns, SalesReturnItemRepository returnItems) {
         this.returns = returns;
         this.returnItems = returnItems;
@@ -207,16 +214,8 @@ public class SalesReturnService {
         // 5. stock and the ledger, the same way the sale was logged
         for (SalesReturnItem item : toSave) {
             if (Boolean.TRUE.equals(item.getRestocked())) {
-                int updated = em.createNativeQuery(
-                                "UPDATE inventory_stock SET current_quantity = current_quantity + ?1, status = 'Available', "
-                                        + "last_updated = UTC_TIMESTAMP(6) WHERE item_id = ?2")
-                        .setParameter(1, item.getQuantity())
-                        .setParameter(2, item.getItemId())
-                        .executeUpdate();
-                if (updated == 0) {
-                    throw new ReturnException(HttpStatus.CONFLICT,
-                            "Item #" + item.getItemId() + " has no stock record, so it cannot be put back in stock.");
-                }
+                // back into the batch it was sold from (same cost, same expiry date)
+                stockService.putBack(item.getOrderItemId(), item.getItemId(), item.getQuantity(), null);
             }
             logTransaction(saved, order, item, reason);
         }

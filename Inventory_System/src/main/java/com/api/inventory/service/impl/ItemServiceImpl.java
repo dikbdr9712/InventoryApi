@@ -30,6 +30,9 @@ public class ItemServiceImpl implements ItemService {
     @Autowired
     private InventoryStockRepository inventoryStockRepository;
 
+    @Autowired
+    private com.api.inventory.service.StockService stockService;
+
     @Override
     @Transactional
     public ItemMasterDTO createItem(ItemMasterDTO dto) {
@@ -178,11 +181,11 @@ public class ItemServiceImpl implements ItemService {
         InventoryStock stock = inventoryStockRepository.findByItemId(id)
             .orElse(null);
         
-        if (stock != null && dto.getQuantity() != null) {
+        if (stock != null && dto.getQuantity() != null && !dto.getQuantity().equals(stock.getCurrentQuantity())) {
+            // a count: more = a new batch at the cost price, fewer = taken first-to-expire first
+            stockService.setCount(id, dto.getQuantity(), null, com.api.inventory.entity.StockBatch.ADJUSTMENT,
+                    "Stock changed in the product form");
             stock.setCurrentQuantity(dto.getQuantity());
-            stock.setLastUpdated(LocalDateTime.now());
-            stock.setStatus(dto.getQuantity() > 0 ? "Available" : "Unavailable");
-            inventoryStockRepository.save(stock);
         }
         
         // ✅ Debug log
@@ -219,6 +222,7 @@ public class ItemServiceImpl implements ItemService {
 	    if (dto.getItemName() == null || dto.getItemName().trim().isEmpty()) {
 	        throw new IllegalArgumentException("Item name is required");
 	    }
+	    com.api.inventory.service.ProductPhotos.check(imageFile); // a bad photo is refused before anything is saved
 
 	    // ✅ Create and populate ItemMaster entity
 	    ItemMaster item = new ItemMaster();
@@ -268,27 +272,10 @@ public class ItemServiceImpl implements ItemService {
 	    savedItem.setSku(finalSku);
 	    itemMasterRepository.save(savedItem);
 
-	    // ✅ Handle image upload (optional)
+	    // Photo (optional): its own file name, so products with the same name never share or overwrite a photo
 	    if (imageFile != null && !imageFile.isEmpty()) {
-	        try {
-	            String cleanName = savedItem.getItemName().toLowerCase().replaceAll("[^a-z0-9]", "");
-	            cleanName = cleanName.substring(0, Math.min(50, cleanName.length()));
-	            String filename = cleanName + ".jpg";
-
-	            Path uploadDir = Paths.get(System.getProperty("user.dir"), "uploads");
-	            Files.createDirectories(uploadDir);
-	            Path filePath = uploadDir.resolve(filename);
-	            
-	            Files.copy(imageFile.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
-	            savedItem.setImagePath("/uploads/" + filename);
-	            itemMasterRepository.save(savedItem);
-	            System.out.println("✅ Saved item with imagePath: " + savedItem.getImagePath());
-	            
-	        } catch (IOException e) {
-	            System.err.println("❌ Failed to save image: " + e.getMessage());
-	            // Continue without image - don't fail the whole operation
-	        }
+	        savedItem.setImagePath(com.api.inventory.service.ProductPhotos.save(savedItem.getItemId(), imageFile, null));
+	        itemMasterRepository.save(savedItem);
 	    }
 
 	    // ✅ Create inventory_stock record with quantity from DTO (NOT hardcoded 0)
@@ -296,14 +283,18 @@ public class ItemServiceImpl implements ItemService {
 	    
 	    InventoryStock stock = new InventoryStock();
 	    stock.setItemId(savedItem.getItemId());
-	    stock.setCurrentQuantity(initialQuantity);  // ✅ Use actual quantity from frontend
+	    stock.setCurrentQuantity(0);
 	    stock.setLastUpdated(LocalDateTime.now());
-	    
-	    // Set status based on quantity (or let @PrePersist handle it)
-	    stock.setStatus(initialQuantity > 0 ? "Available" : "Unavailable");
-	    
+	    stock.setStatus("Unavailable");
 	    inventoryStockRepository.save(stock);
-	    
+
+	    // the first stock is the first batch, at the cost price entered (batch number and expiry can be added on the Stock page)
+	    if (initialQuantity > 0) {
+	        stockService.receive(savedItem.getItemId(), initialQuantity, savedItem.getCostPrice(), null, null, null,
+	                com.api.inventory.entity.StockBatch.OPENING, "Stock entered when the product was added");
+	        stock.setCurrentQuantity(initialQuantity);
+	    }
+
 	    // ✅ Debug log (remove in production or use proper logger)
 	    System.out.println("📦 Item created: ID=" + savedItem.getItemId() + 
 	                       ", Qty=" + initialQuantity + 
@@ -333,34 +324,8 @@ public class ItemServiceImpl implements ItemService {
 	        item.setDeliverySize(com.api.inventory.entity.DeliverySize.parse(dto.getDeliverySize()));
 	    }
 
-	    // Handle image upload
-	    if (imageFile != null && !imageFile.isEmpty()) {
-	        try {
-	            // Clean filename
-	            String rawName = item.getItemName();
-	            String cleanName = rawName
-	                .toLowerCase()
-	                .replaceAll("[^a-z0-9]", "");
-	            cleanName = cleanName.substring(0, Math.min(50, cleanName.length()));
-	            String filename = cleanName + ".jpg";
-
-	            // Save to "uploads" folder
-	            String uploadDirPath = System.getProperty("user.dir") + "/uploads";
-	            Path uploadDir = Paths.get(uploadDirPath);
-	            if (!Files.exists(uploadDir)) {
-	                Files.createDirectories(uploadDir);
-	            }
-	            Path filePath = uploadDir.resolve(filename);
-	            Files.copy(imageFile.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
-	            // Update imagePath
-	            item.setImagePath("/uploads/" + filename);
-	            System.out.println("Updated image for item " + itemId + ": " + item.getImagePath());
-
-	        } catch (IOException e) {
-	            System.err.println("Failed to save updated image: " + e.getMessage());
-	        }
-	    }
+	    // New photo: saved under its own name, and this product's previous photo file is removed
+	    item.setImagePath(com.api.inventory.service.ProductPhotos.save(item.getItemId(), imageFile, item.getImagePath()));
 
 	    // Save updated item
 	    ItemMaster savedItem = itemMasterRepository.save(item);

@@ -64,6 +64,10 @@ public class OrderServiceImpl implements OrderService {
 	private com.api.inventory.service.CustomerService customerService;
 	@Autowired
 	private com.api.inventory.service.DeliveryPricingService deliveryPricing;
+	@Autowired
+	private com.api.inventory.service.NotificationService notify;
+	@Autowired
+	private com.api.inventory.service.StockService stockService;
 
 
 	private static final Set<String> POS_METHODS = Set.of("CASH", "CARD", "UPI", "BANK_TRANSFER");
@@ -283,7 +287,7 @@ public class OrderServiceImpl implements OrderService {
 	        orderItem.setOrderId(savedOrder.getOrderId());
 	        orderItemRepository.save(orderItem);
 
-	        takeStock(orderItem.getItemId(), orderItem.getQuantity());
+	        takeStock(orderItem);
 
 	        Transaction tx = new Transaction();
 	        tx.setItemId(orderItem.getItemId());
@@ -380,6 +384,10 @@ public class OrderServiceImpl implements OrderService {
 	    savedOrder.setTotalAmount(totalAmount.add(deliveryFees));
 	    Order finalOrder = orderRepository.save(savedOrder);
 	    customerService.linkOrder(finalOrder); // the buyer's customer record and history
+	    notify.customer(finalOrder, new com.api.inventory.service.NotificationService.Note("ORDER_PLACED",
+	            "Order #" + finalOrder.getOrderId() + " received",
+	            "Total Nu. " + finalOrder.getTotalAmount() + ". We start packing as soon as your payment is confirmed.",
+	            "/orders/" + finalOrder.getOrderId()), true, null);
 	    return finalOrder;
 	}
 	
@@ -409,7 +417,7 @@ public class OrderServiceImpl implements OrderService {
 
 	    // ✅ Deduct stock & record transactions
 	    for (OrderItem item : items) {
-	        takeStock(item.getItemId(), item.getQuantity());
+	        takeStock(item);
 
 	        Transaction tx = new Transaction();
 	        tx.setItemId(item.getItemId());
@@ -466,7 +474,7 @@ public class OrderServiceImpl implements OrderService {
         // ✅ Reduce stock and record transactions
         for (OrderItem item : items) {
             // Reduce stock
-            takeStock(item.getItemId(), item.getQuantity());
+            takeStock(item);
 
             // Record SALE transaction with order reference
             Transaction tx = new Transaction();
@@ -527,7 +535,7 @@ public class OrderServiceImpl implements OrderService {
         if ("CONFIRMED".equals(order.getOrderStatus())) {
             List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
             for (OrderItem item : items) {
-                inventoryStockRepository.adjustStockByDelta(item.getItemId(), item.getQuantity());
+                stockService.putBack(item.getOrderItemId(), item.getItemId(), item.getQuantity(), item.getUnitCost());
                 
                 Transaction tx = new Transaction();
                 tx.setItemId(item.getItemId());
@@ -542,9 +550,16 @@ public class OrderServiceImpl implements OrderService {
             }
         }
 
+        boolean paid = "PAID".equals(order.getPaymentStatus());
         order.setOrderStatus("CANCELLED");
         order.setUpdatedAt(LocalDateTime.now());
         orderRepository.save(order);
+        if ("ONLINE".equals(order.getSource())) {
+            notify.customer(order, new com.api.inventory.service.NotificationService.Note("ORDER_CANCELLED",
+                    "Order #" + orderId + " was cancelled",
+                    paid ? "You had already paid: we will contact you about the refund." : "Nothing was charged.",
+                    "/orders/" + orderId), true, null);
+        }
     }
 
     @Override
@@ -648,7 +663,7 @@ public class OrderServiceImpl implements OrderService {
 
         // ✅ 3. Reduce stock (only after payment + availability confirmed)
         for (OrderItem item : items) {
-            takeStock(item.getItemId(), item.getQuantity());
+            takeStock(item);
             Transaction tx = new Transaction();
             tx.setItemId(item.getItemId());
             tx.setTransactionType("SALE");
@@ -703,12 +718,12 @@ public class OrderServiceImpl implements OrderService {
         
         return "SHP-" + datePart + "-" + String.format("%04d", nextSeq);
     }
-    /** Takes stock in one step; refuses (and rolls the whole sale back) if another sale took it first. */
-    private void takeStock(Long itemId, int quantity) {
-        if (inventoryStockRepository.takeIfAvailable(itemId, quantity) == 0) {
-            String name = itemMasterRepository.findById(itemId).map(ItemMaster::getItemName).orElse("item " + itemId);
-            throw new IllegalStateException("Not enough " + name + " in stock any more. Reload and try again.");
-        }
+    /**
+     * Takes a sold line's stock in one step, from the batch that expires first, and records its real cost.
+     * Refuses (and rolls the whole sale back) if another sale took it first or only expired stock is left.
+     */
+    private void takeStock(OrderItem line) {
+        stockService.takeForLine(line);
     }
 
 
