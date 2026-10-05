@@ -12,6 +12,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -49,6 +50,11 @@ class SecurityHttpTest {
     @Autowired
     org.springframework.security.crypto.password.PasswordEncoder encoder;
 
+    /** Spring Session: keeps sign-ins in the database and writes the cookie the browser gets. */
+    @Autowired
+    @Qualifier("springSessionRepositoryFilter")
+    Filter sessionFilter;
+
     MockMvc http;
 
     @BeforeEach
@@ -79,6 +85,50 @@ class SecurityHttpTest {
         http.perform(get("/api/delivery/admin/areas")).andExpect(status().isUnauthorized());
         http.perform(get("/api/stock/batches")).andExpect(status().isUnauthorized());
         http.perform(put("/api/seller/location").contentType(MediaType.APPLICATION_JSON).content("{}")).andExpect(status().isUnauthorized());
+    }
+
+    /**
+     * Signing in the way a browser does: through the session layer, keeping only the cookie.
+     * Chrome throws away a cookie marked SameSite=None without Secure, which signed everyone out right after
+     * "Welcome back" (an old cookie setting, 4 Oct 2026). The cookie must be one a browser keeps.
+     */
+    @Test
+    void theSignInCookieIsOneABrowserKeeps() throws Exception {
+        var user = new com.api.inventory.entity.User();
+        user.setName("Pema");
+        user.setEmail("pema@cookie.bt");
+        user.setPhone("17888002");
+        user.setPassword(encoder.encode("secret2"));
+        user.setActive(true);
+        user.setRole(roles.findByName("USER").orElseThrow());
+        users.save(user);
+
+        MockMvc browser = MockMvcBuilders.webAppContextSetup(context).addFilters(sessionFilter, securityChain).build();
+        String setCookie = browser.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"pema@cookie.bt\",\"password\":\"secret2\"}"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getHeader("Set-Cookie");
+        assertNotNull(setCookie, "the sign-in sets a cookie");
+        assertTrue(setCookie.startsWith("SESSION="), setCookie);
+        assertFalse(setCookie.contains("SameSite=None") && !setCookie.contains("Secure"), "a browser would drop: " + setCookie);
+        assertFalse(setCookie.contains("Domain="), setCookie);
+
+        // On the real server Spring Boot writes the cookie from server.servlet.session.cookie.* (HttpOnly, SameSite=Lax,
+        // Secure on the live site). A cookie writer of our own would silently replace those settings.
+        var factory = ((org.springframework.context.ConfigurableApplicationContext) context).getBeanFactory();
+        for (String name : factory.getBeanNamesForType(org.springframework.session.web.http.CookieSerializer.class)) {
+            var definition = factory.getBeanDefinition(name);
+            String origin = definition.getFactoryBeanName() + " " + definition.getResourceDescription();
+            assertFalse(origin.contains("com.api.inventory") || origin.contains("com/api/inventory") || origin.contains("com\\api\\inventory"),
+                    "our own cookie writer: " + origin);
+        }
+        assertEquals("true", context.getEnvironment().getProperty("server.servlet.session.cookie.http-only"));
+        assertEquals("lax", context.getEnvironment().getProperty("server.servlet.session.cookie.same-site"));
+
+        String value = setCookie.substring("SESSION=".length(), setCookie.indexOf(';'));
+        browser.perform(get("/api/auth/me").cookie(new jakarta.servlet.http.Cookie("SESSION", value)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.email").value("pema@cookie.bt"));
+        browser.perform(get("/api/auth/me")).andExpect(status().isUnauthorized());
     }
 
     @Test

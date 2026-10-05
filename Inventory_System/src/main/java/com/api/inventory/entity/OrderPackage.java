@@ -21,7 +21,8 @@ import java.time.Instant;
         @Index(name = "idx_pkg_order", columnList = "orderId"),
         @Index(name = "idx_pkg_seller", columnList = "sellerId"),
         @Index(name = "idx_pkg_rider", columnList = "riderId"),
-        @Index(name = "idx_pkg_status", columnList = "status")
+        @Index(name = "idx_pkg_status", columnList = "status"),
+        @Index(name = "idx_pkg_packer", columnList = "packerEmail")
 })
 @Getter
 @Setter
@@ -107,6 +108,21 @@ public class OrderPackage {
     private Instant pickedUpAt;
     private Instant deliveredAt;
     private Instant cancelledAt;
+
+    /** Our own shop: the staff member packing it (took it, or was given it), then who packed it. Email. */
+    @Column(length = 120)
+    private String packerEmail;
+
+    /** When the packer took it. */
+    private Instant packingStartedAt;
+
+    /** The manager who gave the job to a rider. Empty when the rider took it from the job board. */
+    @Column(length = 120)
+    private String riderAssignedBy;
+
+    /** The staff member who delivered it themselves (no rider). Email. */
+    @Column(length = 120)
+    private String courierEmail;
 
     /** Who did the last step (email), for the record. */
     private String updatedBy;

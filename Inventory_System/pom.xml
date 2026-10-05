@@ -47,6 +47,11 @@
             <groupId>org.springframework.session</groupId>
             <artifactId>spring-session-core</artifactId>
         </dependency>
+        <!-- Sign-ins are kept in MySQL, so restarting the server does not sign everyone out -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-session-jdbc</artifactId>
+        </dependency>
         <!-- Emails: password reset links and order updates (SMTP, set in the server's environment) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

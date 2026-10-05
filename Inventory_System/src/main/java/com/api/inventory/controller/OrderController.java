@@ -145,6 +145,8 @@ public class OrderController {
         boolean confirmedNow = false;
         if (paidNow) {
             order.setPaymentStatus("PAID");
+            order.setPaymentVerifiedBy(updatedBy);
+            order.setPaymentVerifiedAt(java.time.Instant.now());
             orderService.save(order);
             orderService.processOrderConfirmation(orderId); // takes stock once
             order = orderService.findById(orderId);

@@ -48,7 +48,12 @@ public class PosShiftService {
                               BigDecimal openingFloat, int saleCount, BigDecimal totalSales,
                               Map<String, BigDecimal> salesByMethod, BigDecimal cashSales, BigDecimal otherSales,
                               BigDecimal cashRefunds, BigDecimal discounts, BigDecimal tax,
-                              BigDecimal expectedCash, BigDecimal countedCash, BigDecimal difference, String closingNote) {
+                              BigDecimal expectedCash, BigDecimal countedCash, BigDecimal difference, String closingNote,
+                              List<NonCashSale> nonCashSales) {
+    }
+
+    /** A sale paid without cash, with its journal number: to match against the bank statement at closing. */
+    public record NonCashSale(Long orderId, String method, String reference, BigDecimal amount, java.time.LocalDateTime at) {
     }
 
     public record OpenRequest(BigDecimal openingFloat) {
@@ -157,6 +162,7 @@ public class PosShiftService {
         BigDecimal discounts = BigDecimal.ZERO;
         BigDecimal tax = BigDecimal.ZERO;
         Map<String, BigDecimal> byMethod = new TreeMap<>();
+        List<NonCashSale> nonCash = new ArrayList<>();
         for (Order o : orders.findByShiftId(shift.getId())) {
             if ("CANCELLED".equalsIgnoreCase(o.getOrderStatus())) {
                 continue;
@@ -168,7 +174,11 @@ public class PosShiftService {
             tax = tax.add(nz(o.getTaxAmount()));
             String method = o.getPaymentMethod() == null ? "OTHER" : o.getPaymentMethod().trim().toUpperCase();
             byMethod.merge(method, amount, BigDecimal::add);
+            if (!"CASH".equals(method)) {
+                nonCash.add(new NonCashSale(o.getOrderId(), method, o.getPaymentReference(), amount, o.getCreatedAt()));
+            }
         }
+        nonCash.sort(Comparator.comparing(NonCashSale::orderId));
         BigDecimal cash = byMethod.getOrDefault("CASH", BigDecimal.ZERO);
         BigDecimal other = total.subtract(cash);
 
@@ -193,7 +203,7 @@ public class PosShiftService {
                 closed && shift.getOtherSales() != null ? shift.getOtherSales() : other.setScale(2, RoundingMode.HALF_UP),
                 closed && shift.getCashRefunds() != null ? shift.getCashRefunds() : refunds.setScale(2, RoundingMode.HALF_UP),
                 discounts.setScale(2, RoundingMode.HALF_UP), tax.setScale(2, RoundingMode.HALF_UP),
-                expected, shift.getCountedCash(), shift.getDifference(), shift.getClosingNote());
+                expected, shift.getCountedCash(), shift.getDifference(), shift.getClosingNote(), nonCash);
     }
 
     private static BigDecimal nz(BigDecimal v) {

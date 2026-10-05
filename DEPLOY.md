@@ -52,7 +52,8 @@ sudo chown root:dkphar /etc/dkphar/dkphar.env && sudo chmod 640 /etc/dkphar/dkph
 
 The live server uses the **prod** profile (`application-prod.properties`), which:
 - sends the session cookie over HTTPS only and trusts Nginx's forwarded headers;
-- switches the **test payment page off**;
+- switches the **test payment page off**, and paying from a bank account stays off until the real RMA
+  gateway is connected (`APP_PAYMENTS_BANK_MODE=rma`; test mode refuses to start on the live site);
 - keeps logs at INFO and never shows program details in error answers.
 
 ## 4. Build and copy the application (every release)
@@ -106,10 +107,25 @@ Then **make the first admin**: `database/README.md`, steps 5 and 6.
 
 - **Backups**: set up `database/backup.sh` (instructions inside) and copy the backups off the server.
 - **Email**: send yourself a password reset from the sign-in page to check the email settings.
-- **Payments**: the test gateway is off. Real online payment needs a merchant account with a payment
-  gateway (for example the RMA payment gateway or a bank's), and a small class for it, see
-  `Inventory_System/src/main/java/com/api/inventory/service/payments/PaymentGateway.java`.
-  Until then customers pay by bank transfer and staff check the journal number.
+- **Payments from a bank account (real money)**: the connection to the RMA Payment Gateway is built
+  (`RmaBankGatewayClient`). It needs DK/Phar's merchant registration with RMA. Steps:
+  1. Register DK/Phar as a merchant (beneficiary) with the RMA Payment Gateway. RMA gives: a merchant id,
+     the test (UAT) and live addresses, its public key / certificate, and asks for (or gives) DK/Phar's key pair.
+     It may ask for the server's IP address.
+  2. Put the private key on the server, readable only by the app: `/etc/dkphar/rma-merchant.pem` (PEM, PKCS#8;
+     an old "BEGIN RSA PRIVATE KEY" file is converted once with
+     `openssl pkcs8 -topk8 -nocrypt -in merchant.key -out rma-merchant.pem`), and RMA's key as `/etc/dkphar/rma-public.pem`.
+  3. In `/etc/dkphar/dkphar.env`: `APP_PAYMENTS_BANK_MODE=rma`, `APP_PAYMENTS_BANK_RMA_URL=<RMA test address>`,
+     `APP_PAYMENTS_BANK_RMA_BENEFICIARY_ID=<merchant id>`, `APP_PAYMENTS_BANK_RMA_PRIVATE_KEY=/etc/dkphar/rma-merchant.pem`,
+     `APP_PAYMENTS_BANK_RMA_PUBLIC_KEY=/etc/dkphar/rma-public.pem`. Check the bank ids in `app.payments.bank.banks`
+     against RMA's list (1010 Bank of Bhutan, 1020 BNB, 1030 DPNB, 1040 T Bank, 1050 BDBL, 1060 DK Bank).
+  4. Restart and try every case on RMA's test address with RMA's test accounts: right code, wrong code 3 times,
+     unknown account, not enough money. Compare the message fields with RMA's specification (see the comment at
+     the top of RmaBankGatewayClient.java) and adjust if RMA's kit differs.
+  5. Switch `APP_PAYMENTS_BANK_RMA_URL` to the live address, restart, and make one small real payment.
+  If the bank's answer to a debit ever does not arrive, the payment waits under **Order verification -> Bank payments
+  to check**: ask the bank, then press "Money arrived" (with the bank's journal number) or "Nothing was taken".
+  Until RMA is connected customers pay by bank transfer (QR) and staff check the journal number.
 - **Updates**: repeat step 4, then `sudo systemctl restart dkphar`. Database changes (new `V2__...sql`
   files) are applied by Flyway on that start. Take a backup first.
 
@@ -120,4 +136,7 @@ Then **make the first admin**: `database/README.md`, steps 5 and 6.
 - Start the backend from IntelliJ as before; the website with `npm start` (or the preview).
 - Emails and text messages are not sent: they are written to the backend's log (look for
   "Email not sent"), including password reset links, so you can test everything locally.
-- The test payment page is on: choose "Test payment" when paying an order.
+- Paying from a bank account is in TEST MODE: at checkout choose Bank transfer -> "Pay from my bank account",
+  any bank, any account number, and the code 123456 (an account ending 0000 is "not found", 9999 has "not enough
+  money", 5555 = the bank never answers, so the payment waits for staff in Order verification).
+  No bank is contacted and no money moves.

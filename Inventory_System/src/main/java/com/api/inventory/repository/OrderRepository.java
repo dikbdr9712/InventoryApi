@@ -18,8 +18,19 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 	List<Order> findAllByOrderByCreatedAtDesc();
 	List<Order> findByOrderStatus(String status);
 	List<Order> findBySource(String source);
+
+	/** The order board: online orders placed in a period (from inclusive, to exclusive). */
+	@Query("select o from Order o where (o.source is null or o.source <> 'POS') and o.createdAt >= :from and o.createdAt < :to")
+	List<Order> findOnlinePlacedBetween(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+	/** The order board: online orders placed before a period that are still not delivered or cancelled. */
+	@Query("select o from Order o where (o.source is null or o.source <> 'POS') and o.createdAt < :before"
+			+ " and (o.orderStatus is null or o.orderStatus not in ('COMPLETED', 'CANCELLED'))")
+	List<Order> findOnlineOpenPlacedBefore(@Param("before") LocalDateTime before);
 	List<Order> findByShiftId(Long shiftId);
 	java.util.Optional<Order> findByClientRef(String clientRef);
+	/** A journal number already given for a counter sale (see JournalNumbers). */
+	java.util.Optional<Order> findFirstByPaymentReferenceIgnoreCase(String paymentReference);
 	List<Order> findByCustomerPhoneOrderByCreatedAtDesc(String customerPhone);
 	List<Order> findByCustomerIdOrderByCreatedAtDesc(Long customerId);
 	List<Order> findByCustomerIdIsNull();

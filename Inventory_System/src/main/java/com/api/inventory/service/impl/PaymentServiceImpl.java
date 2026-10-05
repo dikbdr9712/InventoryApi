@@ -29,6 +29,8 @@ public class PaymentServiceImpl implements PaymentService {
 	private TransactionRepository transactionRepository;
 	@Autowired
 	private com.api.inventory.service.NotificationService notify;
+	@Autowired
+	private com.api.inventory.service.JournalNumbers journalNumbers;
 	/**
 	 * The customer says "I am paying for this order". The SERVER decides the amount (the order's real total)
 	 * and the status ("pending" until staff check it). Amount, status and transactionId sent by the browser are ignored.
@@ -59,6 +61,8 @@ public class PaymentServiceImpl implements PaymentService {
 	        }
 	        throw new IllegalStateException("A payment for this order was already processed.");
 	    }
+	    // the same transfer can pay for one order (or one counter sale) only
+	    String journal = journalNumbers.requireNew(dto.getJournalNumber(), "journal number");
 
 	    BigDecimal total = order.getTotalAmount();
 	    if (total == null || total.signum() <= 0) {
@@ -71,12 +75,12 @@ public class PaymentServiceImpl implements PaymentService {
 	    payment.setAmount(total);
 	    payment.setStatus("pending");
 	    payment.setPaymentDate(LocalDateTime.now());
-	    payment.setJournalNumber(dto.getJournalNumber());
+	    payment.setJournalNumber(journal);
 
 	    Payment saved = paymentRepository.save(payment);
 	    notify.withPermission("payments.verify", new com.api.inventory.service.NotificationService.Note("PAYMENT_TO_CHECK",
 	            "Payment to check: order #" + order.getOrderId(),
-	            "Nu. " + total + " by bank transfer, journal number " + dto.getJournalNumber().trim() + ".", "/order-verification"), false);
+	            "Nu. " + total + " by bank transfer, journal number " + journal + ".", "/order-verification"), false);
 	    return saved;
 	}
 

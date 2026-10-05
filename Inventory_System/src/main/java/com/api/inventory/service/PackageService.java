@@ -32,7 +32,7 @@ public class PackageService {
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final Set<String> RIDER_ACTIVE = Set.of(OrderPackage.ASSIGNED, OrderPackage.PICKED_UP);
     /** A rider can carry at most this many jobs at once, so jobs are shared fairly. */
-    private static final int MAX_ACTIVE_JOBS_PER_RIDER = 5;
+    public static final int MAX_ACTIVE_JOBS_PER_RIDER = 5;
 
     private final OrderPackageRepository packages;
     private final OrderItemRepository orderItems;
@@ -55,6 +55,15 @@ public class PackageService {
     @org.springframework.beans.factory.annotation.Autowired
     void setNotify(NotificationService notify) {
         this.notify = notify;
+    }
+
+    private UserRepository users;
+    private com.api.inventory.security.AccessControlService access;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void setPeople(UserRepository users, com.api.inventory.security.AccessControlService access) {
+        this.users = users;
+        this.access = access;
     }
 
     public PackageService(OrderPackageRepository packages, OrderItemRepository orderItems, OrderRepository orders,
@@ -164,7 +173,7 @@ public class PackageService {
                 changed = true;
                 NotificationService.Note toPack = new NotificationService.Note("NEW_ORDER", "New order to pack: #" + orderId,
                         "Items worth Nu. " + p.getItemsSubtotal() + ". Pack it and press Packed, a rider will collect it.",
-                        p.getSellerId() == null ? "/admin/deliveries" : "/seller");
+                        p.getSellerId() == null ? "/admin/orders" : "/seller");
                 if (p.getSellerId() == null) {
                     notify.withPermission("orders.fulfil", toPack, false);
                 } else {
@@ -196,7 +205,7 @@ public class PackageService {
                 packages.save(p);
                 if (wasPaid) {
                     NotificationService.Note stop = new NotificationService.Note("ORDER_CANCELLED", "Order #" + orderId + " was cancelled",
-                            "Do not pack or hand over this package.", p.getSellerId() == null ? "/admin/deliveries" : "/seller");
+                            "Do not pack or hand over this package.", p.getSellerId() == null ? "/admin/orders" : "/seller");
                     notify.seller(p.getSellerId(), stop, true);
                     notify.rider(p.getRiderId(), stop, false);
                 }
@@ -236,6 +245,10 @@ public class PackageService {
             }
         }
         requireStatus(p, OrderPackage.TO_PACK, "Only a paid package that is waiting to be packed can be marked as packed.");
+        if (staff && p.getSellerId() == null && p.getPackerEmail() == null) {
+            p.setPackerEmail(CurrentUser.email()); // packed without "Take it" first: the one who packed it
+            p.setPackingStartedAt(Instant.now());
+        }
         p.setStatus(OrderPackage.READY_FOR_PICKUP);
         p.setPackedAt(Instant.now());
         p.setUpdatedBy(CurrentUser.email());
@@ -248,6 +261,158 @@ public class PackageService {
                         + " · " + size.label + (saved.getDistanceKm() == null ? "" : " · " + saved.getDistanceKm().stripTrailingZeros().toPlainString() + " km")
                         + ". First come, first served.", "/rider"));
         return view(saved, staff ? Audience.STAFF : Audience.SELLER);
+    }
+
+    // ================= Staff: who packs, who delivers =================
+
+    /** "Take it": a staff member starts packing a package from our own shop. Sellers pack their own. */
+    @Transactional
+    public PackageView takePacking(Long packageId) {
+        OrderPackage p = packages.findByIdForUpdate(packageId).orElseThrow(() -> new IllegalStateException("Package not found."));
+        requireOwnShop(p);
+        requireStatus(p, OrderPackage.TO_PACK, "Only a paid package that is waiting to be packed can be taken.");
+        String me = CurrentUser.email();
+        if (p.getPackerEmail() != null && !p.getPackerEmail().equalsIgnoreCase(me)) {
+            throw new IllegalStateException(nameOf(p.getPackerEmail()) + " is already packing it. Ask a manager to give it to you.");
+        }
+        if (p.getPackerEmail() == null) {
+            p.setPackerEmail(me);
+            p.setPackingStartedAt(Instant.now());
+            p.setUpdatedBy(me);
+            packages.save(p);
+        }
+        return view(p, Audience.STAFF);
+    }
+
+    /** "Give back": the packer cannot finish it; it goes back to "not started". The packer or a manager. */
+    @Transactional
+    public PackageView releasePacking(Long packageId) {
+        OrderPackage p = packages.findByIdForUpdate(packageId).orElseThrow(() -> new IllegalStateException("Package not found."));
+        requireStatus(p, OrderPackage.TO_PACK, "It is already packed.");
+        String me = CurrentUser.email();
+        if (p.getPackerEmail() != null && !p.getPackerEmail().equalsIgnoreCase(me) && !CurrentUser.has("orders.assign")) {
+            throw new AccessDeniedException("Only " + nameOf(p.getPackerEmail()) + " or a manager can give this back.");
+        }
+        p.setPackerEmail(null);
+        p.setPackingStartedAt(null);
+        p.setUpdatedBy(me);
+        return view(packages.save(p), Audience.STAFF);
+    }
+
+    /** A manager gives a package to a staff member to pack (or takes it off someone). They are told. */
+    @Transactional
+    public PackageView assignPacker(Long packageId, String email) {
+        requireAssigner();
+        OrderPackage p = packages.findByIdForUpdate(packageId).orElseThrow(() -> new IllegalStateException("Package not found."));
+        requireOwnShop(p);
+        requireStatus(p, OrderPackage.TO_PACK, "Only a package waiting to be packed can be given to someone.");
+        User packer = users.findByEmail(email == null ? "" : email.trim())
+                .orElseThrow(() -> new IllegalArgumentException("Choose a staff member."));
+        if (!packer.isActive() || packer.getRole() == null || !access.permissionsOf(packer.getRole().getName()).contains("orders.fulfil")) {
+            throw new IllegalArgumentException(packer.getName() + " cannot pack orders (needs \"Pack, send and cancel orders\").");
+        }
+        String before = p.getPackerEmail();
+        p.setPackerEmail(packer.getEmail());
+        p.setPackingStartedAt(Instant.now());
+        p.setUpdatedBy(CurrentUser.email());
+        packages.save(p);
+        if (!packer.getEmail().equalsIgnoreCase(CurrentUser.email())) {
+            notify.user(packer.getEmail(), new NotificationService.Note("PACK_ASSIGNED", "Order #" + p.getOrderId() + " is yours to pack",
+                    "Given to you by " + nameOf(CurrentUser.email()) + ". Pack it and press Packed.", "/admin/orders"), false);
+        }
+        if (before != null && !before.equalsIgnoreCase(packer.getEmail())) {
+            notify.user(before, new NotificationService.Note("PACK_REASSIGNED", "Order #" + p.getOrderId() + " was given to " + packer.getName(),
+                    "You do not need to pack it any more.", "/admin/orders"), false);
+        }
+        return view(p, Audience.STAFF);
+    }
+
+    /**
+     * A manager gives a packed package to a driver (instead of waiting for one to take it from the job board), or moves
+     * it to another driver before pickup. Same rules as taking a job: approved, valid licence, a vehicle that fits,
+     * not more than the maximum jobs at once.
+     */
+    @Transactional
+    public PackageView assignRider(Long packageId, Long riderId) {
+        requireAssigner();
+        OrderPackage p = packages.findByIdForUpdate(packageId).orElseThrow(() -> new IllegalStateException("Package not found."));
+        if (!OrderPackage.READY_FOR_PICKUP.equals(p.getStatus()) && !OrderPackage.ASSIGNED.equals(p.getStatus())) {
+            throw new IllegalStateException("Only a packed package that has not been picked up can be given to a driver.");
+        }
+        RiderProfile rider = riders.findById(riderId == null ? -1L : riderId).orElseThrow(() -> new IllegalArgumentException("Choose a driver."));
+        if (!rider.isApproved()) {
+            throw new IllegalStateException(rider.getUser().getName() + " is not an approved driver.");
+        }
+        if (rider.licenceExpired()) {
+            throw new IllegalStateException(rider.getUser().getName() + "'s driving licence has expired.");
+        }
+        DeliverySize size = DeliverySize.of(p.getDeliverySize());
+        if (!size.fits(rider.getVehicleType())) {
+            throw new IllegalStateException("This package is " + size.label.toLowerCase() + " (" + size.vehicle.toLowerCase() + "). "
+                    + rider.getUser().getName() + "'s " + rider.getVehicleType().toLowerCase() + " cannot carry it.");
+        }
+        if (Objects.equals(rider.getId(), p.getRiderId())) {
+            return view(p, Audience.STAFF);
+        }
+        long active = packages.findByRiderIdOrderByIdDesc(rider.getId()).stream().filter(x -> RIDER_ACTIVE.contains(x.getStatus())).count();
+        if (active >= MAX_ACTIVE_JOBS_PER_RIDER) {
+            throw new IllegalStateException(rider.getUser().getName() + " already has " + active + " jobs. Choose another driver.");
+        }
+        Long before = p.getRiderId();
+        p.setRiderId(rider.getId());
+        p.setStatus(OrderPackage.ASSIGNED);
+        p.setAssignedAt(Instant.now());
+        p.setRiderAssignedBy(CurrentUser.email());
+        p.setCourierEmail(null);
+        p.setUpdatedBy(CurrentUser.email());
+        packages.save(p);
+
+        SellerProfile from = p.getSellerId() == null ? null : sellers.findById(p.getSellerId()).orElse(null);
+        notify.rider(rider.getId(), new NotificationService.Note("JOB_ASSIGNED", "New job for you: order #" + p.getOrderId(),
+                "Collect from " + (from == null ? "DK/Phar" : from.getShopName()) + " and deliver to " + p.getDropAddress()
+                        + ". You earn Nu. " + p.getRiderPay() + ".", "/rider"), true);
+        if (before != null) {
+            notify.rider(before, new NotificationService.Note("JOB_MOVED", "Order #" + p.getOrderId() + " was given to another driver",
+                    "You do not need to collect it.", "/rider"), false);
+        }
+        tellRiderIsComing(p, rider);
+        return view(p, Audience.STAFF);
+    }
+
+    /** A manager takes a job off a driver before pickup: it goes back on the job board. */
+    @Transactional
+    public PackageView removeRider(Long packageId) {
+        requireAssigner();
+        OrderPackage p = packages.findByIdForUpdate(packageId).orElseThrow(() -> new IllegalStateException("Package not found."));
+        requireStatus(p, OrderPackage.ASSIGNED, "Only a job that has not been picked up can be taken off the driver.");
+        Long before = p.getRiderId();
+        p.setRiderId(null);
+        p.setAssignedAt(null);
+        p.setRiderAssignedBy(null);
+        p.setStatus(OrderPackage.READY_FOR_PICKUP);
+        p.setUpdatedBy(CurrentUser.email());
+        packages.save(p);
+        if (before != null) {
+            notify.rider(before, new NotificationService.Note("JOB_MOVED", "Order #" + p.getOrderId() + " was taken off your jobs",
+                    "You do not need to collect it.", "/rider"), false);
+        }
+        return view(p, Audience.STAFF);
+    }
+
+    private static void requireAssigner() {
+        if (!CurrentUser.has("orders.assign")) {
+            throw new AccessDeniedException("Only someone who plans orders (\"Plan and assign orders\") can give work to others.");
+        }
+    }
+
+    private static void requireOwnShop(OrderPackage p) {
+        if (p.getSellerId() != null) {
+            throw new IllegalStateException("This package is packed by the seller, not by our staff.");
+        }
+    }
+
+    private String nameOf(String email) {
+        return email == null ? "Someone" : users.findByEmail(email).map(User::getName).orElse(email);
     }
 
     // ================= Rider =================
@@ -301,16 +466,20 @@ public class PackageService {
         p.setRiderId(rider.getId());
         p.setStatus(OrderPackage.ASSIGNED);
         p.setAssignedAt(Instant.now());
+        p.setRiderAssignedBy(null);
         p.setUpdatedBy(CurrentUser.email());
         OrderPackage saved = packages.save(p);
-
-        String riderName = rider.getUser().getName();
-        orders.findById(saved.getOrderId()).ifPresent(order -> notify.customer(order, new NotificationService.Note("RIDER_ASSIGNED",
-                "A rider is collecting your order #" + saved.getOrderId(),
-                riderName + " (" + rider.getVehicleType() + ") is on the way to the shop.", "/orders/" + saved.getOrderId()), false, null));
-        notify.seller(saved.getSellerId(), new NotificationService.Note("RIDER_ASSIGNED", "Rider coming for order #" + saved.getOrderId(),
-                riderName + " will collect the package" + (rider.getPhone() == null ? "." : ". Phone: " + rider.getPhone()), "/seller"), false);
+        tellRiderIsComing(saved, rider);
         return view(saved, Audience.RIDER);
+    }
+
+    private void tellRiderIsComing(OrderPackage p, RiderProfile rider) {
+        String riderName = rider.getUser().getName();
+        orders.findById(p.getOrderId()).ifPresent(order -> notify.customer(order, new NotificationService.Note("RIDER_ASSIGNED",
+                "A rider is collecting your order #" + p.getOrderId(),
+                riderName + " (" + rider.getVehicleType() + ") is on the way to the shop.", "/orders/" + p.getOrderId()), false, null));
+        notify.seller(p.getSellerId(), new NotificationService.Note("RIDER_ASSIGNED", "Rider coming for order #" + p.getOrderId(),
+                riderName + " will collect the package" + (rider.getPhone() == null ? "." : ". Phone: " + rider.getPhone()), "/seller"), false);
     }
 
     /** The rider cannot do the job after all: it goes back on the board. */
@@ -337,6 +506,7 @@ public class PackageService {
             // our own delivery: straight from "ready" to "on the way", no rider pay
             requireStatus(p, OrderPackage.READY_FOR_PICKUP, "Pack it first.");
             p.setRiderPay(BigDecimal.ZERO);
+            p.setCourierEmail(CurrentUser.email());
         } else {
             requireOwnJob(p, staff);
             requireStatus(p, OrderPackage.ASSIGNED, "Accept the job first.");

@@ -68,6 +68,8 @@ public class OrderServiceImpl implements OrderService {
 	private com.api.inventory.service.NotificationService notify;
 	@Autowired
 	private com.api.inventory.service.StockService stockService;
+	@Autowired
+	private com.api.inventory.service.JournalNumbers journalNumbers;
 
 
 	private static final Set<String> POS_METHODS = Set.of("CASH", "CARD", "UPI", "BANK_TRANSFER");
@@ -103,6 +105,16 @@ public class OrderServiceImpl implements OrderService {
 	    if (!POS_METHODS.contains(method)) {
 	        throw new IllegalArgumentException("Choose how the customer paid.");
 	    }
+	    // Paid without cash: the journal number (bank transfer / mobile banking) is required, so the money can be
+	    // found on the bank statement; card approval codes and UPI numbers are kept when typed. Never one used before.
+	    String paymentReference = null;
+	    if ("BANK_TRANSFER".equals(method)) {
+	        paymentReference = journalNumbers.requireNew(request.getPaymentReference(), "journal number from the customer's banking app");
+	    } else if (!"CASH".equals(method) && com.api.inventory.service.JournalNumbers.tidy(request.getPaymentReference()) != null) {
+	        paymentReference = journalNumbers.requireNew(request.getPaymentReference(),
+	                "CARD".equals(method) ? "card approval code" : "transaction number");
+	    }
+
 	    String phone = request.getCustomerPhone() == null ? null : request.getCustomerPhone().trim();
 	    if (phone != null && !phone.isEmpty() && !phone.matches("^[0-9]{8}$")) {
 	        throw new IllegalArgumentException("Enter an 8-digit phone number, or leave it empty.");
@@ -264,6 +276,7 @@ public class OrderServiceImpl implements OrderService {
 	    order.setUpdatedBy(shift.getCashierEmail());
 	    order.setClientRef(clientRef);
 	    order.setAmountTendered("CASH".equals(method) ? tendered : null);
+	    order.setPaymentReference(paymentReference);
 	    order.setOrderStatus("COMPLETED");
 	    order.setPaymentStatus("PAID");
 	    order.setSource("POS");
@@ -652,6 +665,10 @@ public class OrderServiceImpl implements OrderService {
         order.setOrderStatus("CONFIRMED");
         order.setPaymentStatus("PAID");
         order.setUpdatedBy(com.api.inventory.security.CurrentUser.email());
+        if (order.getPaymentVerifiedBy() == null) {
+            order.setPaymentVerifiedBy(com.api.inventory.security.CurrentUser.email()); // an online payment sets its own first
+        }
+        order.setPaymentVerifiedAt(java.time.Instant.now());
         orderRepository.save(order);
 
         // the payment the customer sent is now checked, too (so it no longer shows as waiting)

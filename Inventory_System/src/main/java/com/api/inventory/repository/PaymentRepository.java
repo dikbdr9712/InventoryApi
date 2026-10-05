@@ -13,4 +13,9 @@ import java.util.Optional;
 @Repository
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
 	Optional<Payment> findByOrderId(Long orderId);
+
+	java.util.List<Payment> findByOrderIdIn(java.util.Collection<Long> orderIds);
+
+	/** A journal number already given for another order (see JournalNumbers). */
+	Optional<Payment> findFirstByJournalNumberIgnoreCase(String journalNumber);
 }

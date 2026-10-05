@@ -3,6 +3,8 @@ package com.api.inventory.service;
 import com.api.inventory.entity.Order;
 import com.api.inventory.entity.Payment;
 import com.api.inventory.entity.PaymentIntent;
+import com.api.inventory.entity.BankPayment;
+import com.api.inventory.repository.BankPaymentRepository;
 import com.api.inventory.repository.OrderRepository;
 import com.api.inventory.repository.PaymentIntentRepository;
 import com.api.inventory.repository.PaymentRepository;
@@ -64,6 +66,7 @@ public class OnlinePaymentService {
     private final PaymentIntentRepository intents;
     private final OrderRepository orders;
     private final PaymentRepository payments;
+    private final BankPaymentRepository bankPayments;
     private final OrderService orderService;
     private final List<PaymentGateway> gateways;
     private final NotificationService notify;
@@ -72,11 +75,13 @@ public class OnlinePaymentService {
     private final TransactionTemplate newTx;
 
     public OnlinePaymentService(PaymentIntentRepository intents, OrderRepository orders, PaymentRepository payments,
+                                BankPaymentRepository bankPayments,
                                 OrderService orderService, List<PaymentGateway> gateways, NotificationService notify,
                                 AuditService audit, PlatformTransactionManager transactions) {
         this.intents = intents;
         this.orders = orders;
         this.payments = payments;
+        this.bankPayments = bankPayments;
         this.orderService = orderService;
         this.gateways = gateways;
         this.notify = notify;
@@ -118,6 +123,11 @@ public class OnlinePaymentService {
         // pressing Pay again uses the same open attempt, so the gateway never sees two live payments for one order
         Instant now = Instant.now();
         for (PaymentIntent open : intents.findByOrderIdOrderByIdDesc(orderId)) {
+            if (PaymentIntent.CREATED.equals(open.getStatus())
+                    && bankPayments.existsByIntentReferenceAndStatus(open.getReference(), BankPayment.CHECK_BANK)) {
+                throw new IllegalStateException("We are checking your earlier payment for this order with your bank. "
+                        + "Please do not pay again: your order is updated as soon as the bank answers.");
+            }
             if (PaymentIntent.CREATED.equals(open.getStatus())) {
                 boolean reusable = open.getProvider().equals(gateway.code()) && open.getAmount().compareTo(amount) == 0
                         && open.getCreatedAt().isAfter(now.minus(ATTEMPT_LIFETIME).plus(Duration.ofMinutes(10)));
@@ -128,6 +138,7 @@ public class OnlinePaymentService {
                 open.setMessage("Replaced by a new attempt.");
                 open.setCompletedAt(now);
                 intents.save(open);
+                bankPayments.closeOpen(open.getReference(), BankPayment.CANCELLED, now);
             }
         }
 
@@ -184,11 +195,15 @@ public class OnlinePaymentService {
     @Transactional
     public void cancel(String reference) {
         intents.findByReferenceForUpdate(reference).ifPresent(intent -> {
+            if (bankPayments.existsByIntentReferenceAndStatus(intent.getReference(), BankPayment.CHECK_BANK)) {
+                throw new IllegalStateException("We are checking this payment with your bank, so it cannot be cancelled now.");
+            }
             if (!intent.isFinal()) {
                 intent.setStatus(PaymentIntent.CANCELLED);
                 intent.setMessage("You cancelled the payment.");
                 intent.setCompletedAt(Instant.now());
                 intents.save(intent);
+                bankPayments.closeOpen(intent.getReference(), BankPayment.CANCELLED, intent.getCompletedAt());
             }
         });
     }
@@ -247,6 +262,8 @@ public class OnlinePaymentService {
                 staffMustCheck(intent, problem);
                 return null;
             }
+            order.setPaymentVerifiedBy("online:" + intent.getProvider()); // confirmed by the bank, not by a person
+            orders.save(order);
             return order.getOrderId();
         });
 
@@ -269,6 +286,7 @@ public class OnlinePaymentService {
     public void expireOld() {
         Instant now = Instant.now();
         intents.expireOlderThan(now.minus(ATTEMPT_LIFETIME), now);
+        bankPayments.expireClosedAttempts(now);
     }
 
     // ================= Helpers =================

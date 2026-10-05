@@ -11,7 +11,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
-@Table(name = "orders")
+@Table(name = "orders", indexes = @Index(name = "idx_order_payment_ref", columnList = "payment_reference"))
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -96,6 +96,21 @@ public class Order {
     /** Cash handed over by the customer (cash sales), for the receipt. */
     @Column(name = "amount_tendered", precision = 12, scale = 2)
     private BigDecimal amountTendered;
+
+    /**
+     * Counter sales paid without cash: the journal number (bank transfer / mobile banking), the card approval code
+     * or the UPI transaction number, typed by the cashier. On the receipt, in Sales history and the shift report.
+     */
+    @Column(name = "payment_reference", length = 80)
+    private String paymentReference;
+
+    /** Who confirmed the payment: a staff email, or "online:BANK" when the bank confirmed it through the gateway. */
+    @Column(name = "payment_verified_by", length = 120)
+    private String paymentVerifiedBy;
+
+    /** When the payment was confirmed (the order then waits to be packed). */
+    @Column(name = "payment_verified_at")
+    private java.time.Instant paymentVerifiedAt;
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private List<TaxDetail> taxDetails;
 

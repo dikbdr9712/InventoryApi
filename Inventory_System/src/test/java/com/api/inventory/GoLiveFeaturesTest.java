@@ -56,6 +56,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.jpa.show-sql=false",
         "app.private-upload-dir=target/test-private-uploads",
         "app.payments.sandbox.enabled=true",
+        "app.payments.bank.mode=off",
         "spring.data.jpa.repositories.bootstrap-mode=lazy"
 })
 class GoLiveFeaturesTest {

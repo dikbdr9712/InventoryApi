@@ -19,6 +19,8 @@ public class PosSaleRequestDTO {
     private String clientRef;
     /** Cash the customer handed over (cash sales only). */
     private BigDecimal amountTendered;
+    /** Journal number (bank transfer, required), card approval code or UPI transaction number (optional). */
+    private String paymentReference;
 	public String getCustomerName() {
 		return customerName;
 	}

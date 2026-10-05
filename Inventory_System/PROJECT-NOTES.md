@@ -431,3 +431,143 @@ Fix (2 Oct 2026, evening): IntelliJ runs the backend with the working folder D:\
 so uploads/ and private-uploads/ live in D:\Inventory and "./secrets.properties" was not found ("Access denied ...
 using password: NO"). application.properties now imports ./secrets.properties AND ./Inventory_System/secrets.properties.
 Tested by starting the jar from D:\Inventory. database/backup.ps1 now saves the upload folders of both places.
+
+## 22. Fewer sign-outs, POS fixes (3 Oct 2026)
+- Sign-ins were kept in the server's memory: every backend restart signed everyone out, and 30 minutes in a
+  background tab did too. Now Spring Session JDBC keeps them in MySQL (V3__sessions_in_database.sql: SPRING_SESSION,
+  SPRING_SESSION_ATTRIBUTES; expired ones removed every minute) and the idle limit is 4 hours
+  (server.servlet.session.timeout=${SESSION_TIMEOUT:4h}). Tested: a fresh MySQL database got V1-V3 and started.
+  The browser cookie is now called SESSION (was JSESSIONID): everyone signs in once more after this update.
+  4 Oct 2026 fix: an old config/SessionConfig.java (a CookieSerializer bean) took over the cookie once Spring Session
+  was on: JSESSIONID with SameSite=None but no Secure, which Chrome refuses, so every sign-in was lost at once
+  ("Welcome back" then "Your session has ended"). Removed: the cookie now follows server.servlet.session.cookie.*
+  (SESSION, HttpOnly, SameSite=Lax, Secure on the live site). Do not add a CookieSerializer bean again; change the
+  properties instead (SecurityHttpTest.theSignInCookieIsOneABrowserKeeps checks it).
+  The sign-in page never "returns" to itself (returnUrl=/login) and its button no longer stays on "Signing in...".
+- Sales dashboard and My orders: no more browser pop-ups (alert/confirm); normal messages, and nothing extra
+  when the sign-in ended (the app already goes to the sign-in page).
+- POS: marketplace sellers' products are no longer offered at the counter (the server refused them anyway:
+  they are in the seller's shop, sold online only). A saved sale holding one has it taken out, with a message.
+- POS on phones: "Current sale" button at the top as well; Charge stays at the bottom of the open sale.
+Payments with bank + account number + OTP: built on 4 Oct 2026, see section 23.
+
+## 23. Paying from a bank account with a code on the phone (4 Oct 2026)
+The flow: Payment page -> "Pay from your bank account" -> /pay/bank?ref=PI-... ->
+  1. choose the bank, type the account number -> "Send the code to my phone": the customer's bank texts a one-time
+     code to the phone registered with that account (valid 5 minutes)
+  2. type the code -> "Pay Nu. X": the money moves to our account, the order is confirmed at once (stock taken,
+     sellers told to pack, customer told), and the customer lands on /payment/result.
+Limits: 3 wrong codes, or a 4th code, end the attempt (nothing taken; the customer starts again from the order);
+"send again" after 30 seconds; at most 10 code requests per customer per hour (sent or refused), so nobody can
+flood a stranger's phone or try account numbers one by one.
+
+Backend (Inventory_System, package com.api.inventory):
+- entity/BankPayment (table bank_payments): one row per payment from a bank account. Keeps the bank, the LAST 4
+  digits of the account, the gateway's transaction number, codes sent, wrong codes, how it ended.
+  STARTED -> CODE_SENT -> PAID | FAILED | CANCELLED | EXPIRED.
+- entity/PaymentEvent (table payment_events): every step with time and who (STARTED, CODE_REQUESTED, CODE_SENT,
+  CODE_REFUSED, WRONG_CODE, CODE_EXPIRED, PAID, REFUSED, TOO_MANY_CODES). For "what happened to my payment?".
+- The full account number and the code are never stored or logged (the request classes print them as ****).
+- service/payments/BankGatewayClient: the 3 steps the gateway offers (start, requestCode, debit).
+  TestBankGatewayClient = TEST MODE: no bank contacted, no money, no text; code 123456; account ending 0000 =
+  "not found", ending 9999 = "not enough money". Refuses to start with the prod profile.
+- service/payments/BankAccountGateway: the "BANK" choice on the payment page (shown while a client is on).
+- service/BankPaymentService + controller/BankPaymentController: /api/online-payments/bank (banks, {ref},
+  {ref}/code, {ref}/pay). Paid money goes through OnlinePaymentService.complete like every online payment.
+  Cancelling/replacing/expiring the attempt closes the bank row too.
+- Settings: app.payments.bank.mode = test (this computer) | rma (real gateway, once connected) | off (live default,
+  APP_PAYMENTS_BANK_MODE). app.payments.bank.banks = the bank list. The older one-click test page
+  (app.payments.sandbox.enabled) is now off here too.
+- db/migration/V4__bank_payments.sql (Flyway applies it on the next start; tested on a fresh MySQL database:
+  V1-V4 applied and the table check passed).
+- Tests: BankPaymentTest (9): right code pays and confirms; only last 4 digits stored; 3 wrong codes; unknown
+  account and refusal; 4th code; account guessing limit; cancel; other people refused; the web calls. 27 in all.
+
+Frontend: Components/pay-bank (route pay/bank, signed in): bank cards, account number, code box with countdown,
+send again, use another account, cancel. services/online-payments.ts: banks, bankView, bankRequestCode, bankPay.
+Payment page shows the bank choice with its own explanation. Disabled green buttons no longer turn Bootstrap blue.
+
+To go live with real money: register DK/Phar as a merchant with the RMA Payment Gateway, get their kit (test
+address, merchant id, keys, message format), write RmaBankGatewayClient implementing BankGatewayClient
+(@ConditionalOnProperty app.payments.bank.mode=rma), try it on their test address, then set
+APP_PAYMENTS_BANK_MODE=rma on the server. Nothing else changes.
+
+## 24. Bank transfer, journal numbers in the POS, receipts, the real RMA connection (4 Oct 2026)
+Checkout: "Bank transfer" holds both ways. "Pay from my bank account" (bank + account number + code on the phone,
+confirmed at once, page /pay/bank) is chosen first when it is switched on; "Scan our QR in my banking app" is the
+QR + account details + journal number as before (the only way when bank-account payments are off).
+
+Journal numbers (service/JournalNumbers): tidied (trimmed, upper case), 4-40 letters/digits, and never accepted
+twice anywhere: checkout transfers (payments.journal_number) and counter sales (orders.payment_reference).
+- POS: Bank transfer needs the journal number from the customer's banking app (field in the payment step,
+  Enter completes); Card approval code / UPI number optional. Printed on the A4 invoice and the narrow receipt,
+  shown and searchable in Sales history, and listed per shift ("Paid without cash: match with the bank statement")
+  in Close drawer, the end-of-shift report and Cash drawers.
+- Payments from a bank account record the BANK's journal number (bank_payments.bank_reference); the payment is
+  recorded as "ONLINE BANK <journal>".
+
+Receipt (Components/receipt, route receipt/:orderId; GET /api/orders/{id}/receipt, ReceiptService): for paid
+orders, online and counter, the customer's own or any for staff (orders.view / pos.use). Shows the payment method,
+journal number, bank account (last 4), items, tax, delivery, total. Responsive by container width (phone: one
+column, compact lines). Download PDF (utils/pdf.ts) renders a copy at desktop width, so the PDF is the same from
+a phone; Print uses utils/print-area. Links: payment result (paid), order page (paid), Sales history (each sale).
+
+Real money (RmaBankGatewayClient, app.payments.bank.mode=rma): the RMA Payment Gateway's merchant API (AR register,
+AE account enquiry -> the bank texts the OTP, DR debit -> bfs_debitAuthNo = journal), every message signed
+SHA1withRSA with DK/Phar's key, RMA's answers checked with RMA's key. Settings and steps: DEPLOY.md. Bank ids are
+RMA's (1010 BoB ... 1060 DK). Needs the merchant registration and kit before it can run; check field names against
+the kit and test on RMA's UAT first.
+When the bank's answer to the debit never arrives (timeout, broken connection, an answer failing its signature
+check) the payment is CHECK_BANK: never "failed", the customer is told not to pay again, new attempts and
+cancelling are refused, it does not expire, staff are notified, and Order verification -> "Bank payments to check"
+settles it (Money arrived + journal number -> order confirmed; Nothing was taken -> customer can pay again).
+Test mode: account ending 5555 acts this out.
+
+Backend: V5__journal_numbers.sql. Tests: JournalAndReceiptTest (3), RmaBankGatewayClientTest (5, a pretend RMA
+that checks signatures), BankPaymentTest (+1: bank never answers, staff settle). 37 in all, passing.
+
+## 25. Checkout: bank account through the RMA Payment Gateway only (4 Oct 2026)
+The QR code, the shop's account details and the journal-number field are gone from checkout (they were for
+testing). The one way to pay online orders: "Pay with your bank account", secure online payment through the RMA
+Payment Gateway (Royal Monetary Authority of Bhutan), with the banks shown (BoB, BNB, DPNB, TBank, BDBL, DK); button
+"Place order and pay" -> /pay/bank. When bank-account payment is off (app.payments.bank.mode=off, the live default
+until RMA is connected) checkout says "Online payment is not available right now" and the button is disabled.
+Wording updated: home and services pages, payment result, order success, receipt ("Bank account (RMA Payment
+Gateway)"), the payment option label. Staff "Verify payments" still handles transfers sent before this change;
+the counter (POS) still records journal numbers for bank transfers at the till.
+
+## 26. Order management: the order board (5 Oct 2026)
+/admin/orders is now the ORDER BOARD (Components/order-board); the old Order list and Deliveries pages are gone
+(/admin/deliveries redirects here). Staff menu: Orders -> "Orders" and "Verify payments".
+
+The steps, in order (each online order is in exactly one; from packing on, each PACKAGE - one per seller):
+  Awaiting payment -> Verify payment -> To pack -> Packed, needs a driver -> Driver coming to collect -> On the way
+  -> Delivered (Cancelled on the side).
+- Pipeline at the top: how many in each step (click = only that step), "N not started", "N need a driver".
+- Tabs: Needs action (verify, pack, packed without a driver, anything late), Mine (what I am packing), Late,
+  All in progress, Drivers, Done. Search: order #, customer, phone, journal, driver, packer, item, address.
+- Period: Today / This week (from Monday) / This month (default) / This year / Custom range, by the day the order was
+  PLACED. Orders placed earlier that are still not delivered are never hidden silently: a banner counts them and
+  "Show them" adds them, marked "older". The period stays in the address (?period=..&from=..&to=..).
+- Late: longer in a step than the target (app.orders.target.*: check payment 2 h, pack 4 h after payment, collect
+  2 h after packing, deliver 3 h after collecting). Late work comes first; a red banner counts it.
+- Who has it (per card and in the side panel with the full history): who confirmed the payment (a person, or "the
+  bank (RMA Payment Gateway)"), who is packing / packed it and since when, which driver has it (and whether a manager
+  gave the job or the driver took it from the job board), or which staff member delivered it.
+- Route: every packed package shows FROM (shop or seller, pickup address) -> TO (customer, drop address), distance.
+  Drivers tab: every package a driver (or our staff) took in the period, filterable by driver (click a driver in
+  the team panel): driver, vehicle, phone, from -> to with times, size, distance, driver pay.
+- Team panel: packers (packing now, packed in the period), drivers (jobs now x/5, delivered in the period, free /
+  busy / full), the targets.
+- Buttons by step: Call / Cancel unpaid order (after a day) · Check payment / Money arrived · Take it / Packed /
+  Give back / Give to... (packer) · Mark packed for seller · Give to a driver... (only drivers whose vehicle fits the
+  size) / We deliver it · Collected / Change driver / Take off driver · Delivered · Receipt. Packing slip (print).
+  Refreshes itself every minute.
+
+Backend: OrderBoardService + OrderBoardController (GET /api/admin/order-board?from&to&older, take, release, packer,
+rider, rider/remove). PackageService: takePacking, releasePacking, assignPacker, assignRider, removeRider (with
+notifications to the people concerned); packed records the packer, "we deliver it" records the courier.
+New permission orders.assign "Plan and assign orders" (MANAGER by default, ADMIN always; CATALOG_VERSION 3 gives it
+to existing MANAGER roles once). Taking work yourself needs orders.fulfil; giving it to others needs orders.assign.
+V6__order_handling.sql: order_packages.packer_email, packing_started_at, rider_assigned_by, courier_email;
+orders.payment_verified_by, payment_verified_at. Tests: OrderBoardTest (3). 40 in all.

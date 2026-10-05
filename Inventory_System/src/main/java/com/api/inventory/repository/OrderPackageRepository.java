@@ -15,6 +15,8 @@ public interface OrderPackageRepository extends JpaRepository<OrderPackage, Long
 
     List<OrderPackage> findByOrderIdOrderByIdAsc(Long orderId);
 
+    List<OrderPackage> findByOrderIdIn(Collection<Long> orderIds);
+
     List<OrderPackage> findBySellerIdOrderByIdDesc(Long sellerId);
 
     List<OrderPackage> findByRiderIdOrderByIdDesc(Long riderId);
