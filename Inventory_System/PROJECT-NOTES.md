@@ -571,3 +571,16 @@ New permission orders.assign "Plan and assign orders" (MANAGER by default, ADMIN
 to existing MANAGER roles once). Taking work yourself needs orders.fulfil; giving it to others needs orders.assign.
 V6__order_handling.sql: order_packages.packer_email, packing_started_at, rider_assigned_by, courier_email;
 orders.payment_verified_by, payment_verified_at. Tests: OrderBoardTest (3). 40 in all.
+
+## 27. Free hosting: Render + Aiven (5 Oct 2026)
+Guide: D:InventoryDEPLOY-RENDER.md (Aiven free MySQL, Render Docker web service for the API, Render static site
+for the website with rewrites /api/* and /uploads/* to the API and /* to /index.html, so everything is one address
+and the session cookie stays first-party).
+- Uploaded files go through FileStore (service/files): DiskFileStore (default, folders) or DatabaseFileStore
+  (app.files.store=database, table stored_files, V7). Render's free disk is wiped on restart, so hosting sets
+  APP_FILES_STORE=database. On start, files still in the folders are copied in once. ProductPhotos is now a bean;
+  PartnerDocumentService and /uploads/{name} (UploadsController, database mode) use the store.
+- Inventory_System/Dockerfile (maven:3.9-eclipse-temurin-26 build, eclipse-temurin:26-jre run, prod profile, memory
+  capped for 512 MB, Bhutan time zone, non-root). InventoryWeb/.node-version = 24 (Angular 22 needs 22.22+/24.15+).
+- app.payments.bank.test-on-live-site=true allows TEST MODE bank payments under the prod profile, for a demo copy only.
+- Tests: FilesInDatabaseTest (1). 41 in all.

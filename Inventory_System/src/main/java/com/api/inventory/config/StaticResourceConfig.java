@@ -1,23 +1,28 @@
 package com.api.inventory.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import java.nio.file.Paths;
-
+/**
+ * Product photos at /uploads/... from the uploads folder (app.files.store=disk, the default).
+ * With app.files.store=database the photos come from the database instead (UploadsController).
+ */
 @Configuration
 public class StaticResourceConfig implements WebMvcConfigurer {
 
+    @Value("${app.files.store:disk}")
+    private String store;
+
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // Get project root directory
-        String projectRoot = System.getProperty("user.dir");
-        String uploadDir = projectRoot + "/uploads/";
-
-        // Serve files from /uploads/ URL
+        if ("database".equalsIgnoreCase(store)) {
+            return;
+        }
+        String uploadDir = System.getProperty("user.dir") + "/uploads/";
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations("file:" + uploadDir)
-                .setCachePeriod(3600); // Optional: cache for 1 hour
+                .setCachePeriod(3600);
     }
 }

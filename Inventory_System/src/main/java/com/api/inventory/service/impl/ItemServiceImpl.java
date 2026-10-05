@@ -33,6 +33,9 @@ public class ItemServiceImpl implements ItemService {
     @Autowired
     private com.api.inventory.service.StockService stockService;
 
+    @Autowired
+    private com.api.inventory.service.ProductPhotos productPhotos;
+
     @Override
     @Transactional
     public ItemMasterDTO createItem(ItemMasterDTO dto) {
@@ -274,7 +277,7 @@ public class ItemServiceImpl implements ItemService {
 
 	    // Photo (optional): its own file name, so products with the same name never share or overwrite a photo
 	    if (imageFile != null && !imageFile.isEmpty()) {
-	        savedItem.setImagePath(com.api.inventory.service.ProductPhotos.save(savedItem.getItemId(), imageFile, null));
+	        savedItem.setImagePath(productPhotos.save(savedItem.getItemId(), imageFile, null));
 	        itemMasterRepository.save(savedItem);
 	    }
 
@@ -325,7 +328,7 @@ public class ItemServiceImpl implements ItemService {
 	    }
 
 	    // New photo: saved under its own name, and this product's previous photo file is removed
-	    item.setImagePath(com.api.inventory.service.ProductPhotos.save(item.getItemId(), imageFile, item.getImagePath()));
+	    item.setImagePath(productPhotos.save(item.getItemId(), imageFile, item.getImagePath()));
 
 	    // Save updated item
 	    ItemMaster savedItem = itemMasterRepository.save(item);

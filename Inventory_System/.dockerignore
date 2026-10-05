@@ -1,0 +1,9 @@
+# Not needed (or not allowed) inside the image
+target/
+secrets.properties
+*.log
+.idea/
+.vscode/
+*.iml
+uploads/
+private-uploads/

@@ -1,18 +1,18 @@
 package com.api.inventory.service;
 
+import com.api.inventory.service.files.FileStore;
+import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.HexFormat;
 
 /**
- * Product photos in the public uploads folder.
+ * Product photos, kept in the file store (the uploads folder, or the database on hosting without a lasting disk:
+ * see FileStore) and shown at /uploads/{name}.
  *
  *  - Every photo gets its own name (item-12-3fa9c1d2.jpg). Before, the name came from the product name, so two
  *    products called "Phone" shared, and overwrote, one photo.
@@ -21,12 +21,16 @@ import java.util.HexFormat;
  *  - When a product gets a new photo, its previous photo file is deleted, but only a file this class made for
  *    the same product (old shared photos like "phone.jpg" are left alone).
  */
-public final class ProductPhotos {
+@Component
+public class ProductPhotos {
 
     public static final long MAX_BYTES = 5L * 1024 * 1024;
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    private ProductPhotos() {
+    private final FileStore store;
+
+    public ProductPhotos(FileStore store) {
+        this.store = store;
     }
 
     /** Throws a clear message when the file is not an acceptable photo. Call before saving anything. */
@@ -46,7 +50,7 @@ public final class ProductPhotos {
      * Saves the photo for this product and returns its web path ("/uploads/item-12-3fa9c1d2.jpg"),
      * or the previous path when no file was sent.
      */
-    public static String save(Long itemId, MultipartFile image, String previousPath) {
+    public String save(Long itemId, MultipartFile image, String previousPath) {
         if (image == null || image.isEmpty()) {
             return previousPath;
         }
@@ -55,10 +59,8 @@ public final class ProductPhotos {
         byte[] random = new byte[4];
         RANDOM.nextBytes(random);
         String name = "item-" + itemId + "-" + HexFormat.of().formatHex(random) + "." + ext;
-        try (InputStream in = image.getInputStream()) {
-            Path dir = folder();
-            Files.createDirectories(dir);
-            Files.copy(in, dir.resolve(name));
+        try {
+            store.put(FileStore.PUBLIC, name, image.getBytes(), FileStore.typeOf(name));
         } catch (IOException e) {
             throw new IllegalStateException("The photo could not be saved. Please try again.");
         }
@@ -66,7 +68,7 @@ public final class ProductPhotos {
         return "/uploads/" + name;
     }
 
-    private static void deleteOwn(Long itemId, String previousPath) {
+    private void deleteOwn(Long itemId, String previousPath) {
         if (previousPath == null || !previousPath.startsWith("/uploads/item-" + itemId + "-")) {
             return;
         }
@@ -74,15 +76,7 @@ public final class ProductPhotos {
         if (file.contains("/") || file.contains("\\") || file.contains("..")) {
             return;
         }
-        try {
-            Files.deleteIfExists(folder().resolve(file));
-        } catch (IOException ignored) {
-            // an old file left behind does no harm
-        }
-    }
-
-    private static Path folder() {
-        return Paths.get(System.getProperty("user.dir"), "uploads");
+        store.delete(FileStore.PUBLIC, file); // an old file left behind would do no harm either
     }
 
     /** "jpg", "png", "webp" or "gif" from the file's first bytes; null for anything else. */

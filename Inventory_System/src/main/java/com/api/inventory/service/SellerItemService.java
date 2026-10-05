@@ -44,6 +44,13 @@ public class SellerItemService {
         this.stockService = stockService;
     }
 
+    private ProductPhotos photos;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void setPhotos(ProductPhotos photos) {
+        this.photos = photos;
+    }
+
     public SellerItemService(ItemMasterRepository items, InventoryStockRepository stock, TransactionRepository transactions) {
         this.items = items;
         this.stock = stock;
@@ -188,10 +195,9 @@ public class SellerItemService {
         transactions.save(tx);
     }
 
-    /** Each seller photo gets its own file name, so one shop can never overwrite another shop's picture. */
-    /** The photo gets its own file name and its real type is checked (see ProductPhotos). */
-    private static void saveImage(ItemMaster item, MultipartFile image) {
-        item.setImagePath(ProductPhotos.save(item.getItemId(), image, item.getImagePath()));
+    /** Each seller photo gets its own file name and its real type is checked (see ProductPhotos). */
+    private void saveImage(ItemMaster item, MultipartFile image) {
+        item.setImagePath(photos.save(item.getItemId(), image, item.getImagePath()));
     }
 
     private ItemMasterDTO toDto(ItemMaster item, SellerProfile seller) {

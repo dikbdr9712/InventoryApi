@@ -12,6 +12,7 @@ The tables are defined in **`Inventory_System/src/main/resources/db/migration/`*
 | `../Inventory_System/src/main/resources/db/migration/V2__stock_batches.sql` | Stock by batch: `stock_batches`, `order_item_batches`, `order_items.unit_cost` | Runs **by itself** (new and upgraded databases) |
 | `../Inventory_System/src/main/resources/db/migration/V3__sessions_in_database.sql` | Sign-ins kept in the database (`SPRING_SESSION`, `SPRING_SESSION_ATTRIBUTES`), so a restart signs nobody out | Runs **by itself** |
 | `../Inventory_System/src/main/resources/db/migration/V4__bank_payments.sql` | Paying from a bank account: `bank_payments` (last 4 digits only) and `payment_events` | Runs **by itself** |
+| `../Inventory_System/src/main/resources/db/migration/V7__files_in_database.sql` | `stored_files`: photos and documents kept in MySQL when `app.files.store=database` (free hosting) | Runs **by itself** |
 | `../Inventory_System/src/main/resources/db/migration/V6__order_handling.sql` | Who handles each order: packer, who gave the job to a driver, staff courier, who confirmed the payment | Runs **by itself** |
 | `../Inventory_System/src/main/resources/db/migration/V5__journal_numbers.sql` | Journal numbers: `orders.payment_reference` (counter sales) and `bank_payments.bank_reference` (the bank's journal) | Runs **by itself** |
 | `02-first-admin.sql` | Turns the owner's signed-up account into the first admin | New server, once |

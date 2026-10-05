@@ -1,5 +1,7 @@
 # DK/Phar Inventory: putting it on a live server
 
+> Free hosting (Render + Aiven, no own server): see **DEPLOY-RENDER.md**. This file is for your own Linux server.
+
 One Linux server (Ubuntu 24.04 LTS works well, 2 GB RAM or more) runs everything:
 
 ```

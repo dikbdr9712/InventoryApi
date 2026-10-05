@@ -24,7 +24,8 @@ import java.util.concurrent.ConcurrentHashMap;
  *   an account number ending in 5555  -> the bank's answer to the debit never comes (staff must check)
  *   a successful payment gets a pretend journal number starting with TJ
  *
- * It refuses to start on the live site (the "prod" profile).
+ * It refuses to start on the live site (the "prod" profile), unless app.payments.bank.test-on-live-site=true:
+ * only for a demo copy of the shop on the internet, where everyone sees "TEST MODE: no real money".
  */
 @Component
 @ConditionalOnProperty(name = "app.payments.bank.mode", havingValue = "test")
@@ -37,9 +38,15 @@ public class TestBankGatewayClient implements BankGatewayClient {
     /** gateway transaction -> last 4 digits of the account (only to act out the special accounts above) */
     private final Map<String, String> lastDigits = new ConcurrentHashMap<>();
 
-    public TestBankGatewayClient(Environment environment, @Value("${app.payments.bank.banks}") String bankList) {
+    public TestBankGatewayClient(Environment environment, @Value("${app.payments.bank.banks}") String bankList,
+                                 @Value("${app.payments.bank.test-on-live-site:false}") boolean demoSite) {
         if (Arrays.asList(environment.getActiveProfiles()).contains("prod")) {
-            throw new IllegalStateException("Test bank payments cannot run on the live site. Set app.payments.bank.mode=off or rma.");
+            if (!demoSite) {
+                throw new IllegalStateException("Test bank payments cannot run on the live site. Set app.payments.bank.mode=off or rma"
+                        + " (or app.payments.bank.test-on-live-site=true for a demo copy that takes no real money).");
+            }
+            org.slf4j.LoggerFactory.getLogger(TestBankGatewayClient.class)
+                    .warn("TEST MODE bank payments on a live (prod) site: a demo copy, no real money is taken.");
         }
         this.banks = Bank.parse(bankList);
     }

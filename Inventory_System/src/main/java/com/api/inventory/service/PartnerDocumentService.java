@@ -2,18 +2,14 @@ package com.api.inventory.service;
 
 import com.api.inventory.entity.PartnerDocument;
 import com.api.inventory.repository.PartnerDocumentRepository;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.FileSystemResource;
+import com.api.inventory.service.files.FileStore;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
@@ -22,7 +18,8 @@ import java.util.UUID;
 /**
  * Identity and business documents of sellers and drivers (CID, driving licence, trade licence).
  *
- *  - Stored in the PRIVATE folder (app.private-upload-dir), never in the public uploads folder.
+ *  - Stored in the PRIVATE area of the file store (private-uploads/partners, or the database: see FileStore),
+ *    never in the public uploads.
  *  - Saved under a random name; the person's own file name is only remembered for the admin.
  *  - Only JPG, PNG or PDF, checked by the file's first bytes (not just its name), at most 5 MB.
  *  - Opened only through an admin-only endpoint.
@@ -33,11 +30,11 @@ public class PartnerDocumentService {
     private static final long MAX_BYTES = 5L * 1024 * 1024;
 
     private final PartnerDocumentRepository docs;
-    private final Path folder;
+    private final FileStore store; // private area: never served at /uploads
 
-    public PartnerDocumentService(PartnerDocumentRepository docs, @Value("${app.private-upload-dir:private-uploads}") String dir) {
+    public PartnerDocumentService(PartnerDocumentRepository docs, FileStore store) {
         this.docs = docs;
-        this.folder = Paths.get(dir).toAbsolutePath().resolve("partners");
+        this.store = store;
     }
 
     public record DocumentView(Long id, String kind, String originalName, String contentType, Long sizeBytes, Instant uploadedAt) {
@@ -73,9 +70,8 @@ public class PartnerDocumentService {
             throw new IllegalStateException("Only JPG, PNG or PDF files can be sent.");
         }
         String stored = UUID.randomUUID() + "." + type[1];
-        try (InputStream in = file.getInputStream()) {
-            Files.createDirectories(folder);
-            Files.copy(in, folder.resolve(stored), StandardCopyOption.REPLACE_EXISTING);
+        try {
+            store.put(FileStore.PARTNERS, stored, file.getBytes(), type[0]);
         } catch (IOException e) {
             throw new IllegalStateException("The document could not be saved. Please try again.");
         }
@@ -102,11 +98,9 @@ public class PartnerDocumentService {
     }
 
     public Resource file(PartnerDocument d) {
-        Path path = folder.resolve(d.getStoredName()).normalize();
-        if (!path.startsWith(folder) || !Files.exists(path)) {
-            throw new IllegalStateException("The document file is missing.");
-        }
-        return new FileSystemResource(path);
+        return store.get(FileStore.PARTNERS, d.getStoredName())
+                .map(c -> (Resource) new ByteArrayResource(c.bytes()))
+                .orElseThrow(() -> new IllegalStateException("The document file is missing."));
     }
 
     /** [content type, extension] from the file's first bytes, or null when it is not JPG/PNG/PDF. */
