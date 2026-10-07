@@ -699,3 +699,13 @@ Staff: Website > About page (/admin/about, Components/about-admin, permission si
   are changed in Website > About page), the Java package com.api.inventory, the Angular project name inventory-project
   (Render's static site publishes dist/inventory-project/browser), the GitHub repositories and the Render addresses
   (inventoryapi-qqjz / inventoryweb-a461: an onrender.com address cannot be renamed; a domain of your own can be added).
+
+## 34. Documentation (7 Oct 2026)
+The documentation is in the server repository, D:\Inventory\docs (README.md is the index):
+01-system-overview (simple language, everyone), 02-user-guide (customers, sellers, drivers: every step),
+03-staff-guide (counter, order board, payments, products and stock, customers, reports), 04-admin-guide (setup,
+roles and permissions table, marketplace, website, payments, email/SMS, hosting, backups, settings, security
+checklist, problems and fixes), 05-technical-reference (architecture, running locally, settings, code, security,
+database, API by area with permissions, business rules, scheduled jobs, tests, build), 06-glossary-and-faq.
+D:\Inventory\README.md is the server repository's front page; the website's README.md now describes the website
+and points to the docs. Keep the guides in step with the screens: change the document in the same commit.
