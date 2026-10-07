@@ -31,7 +31,7 @@ git push
 
 1. Go to **https://aiven.io** → **Sign up** (Google or GitHub is fine). No card is needed.
 2. **Create service** → **MySQL** → plan **Free**. Pick the region closest to Bhutan that is offered
-   (Singapore / Asia if listed). Name it `dkphar-db`. **Create**.
+   (Singapore / Asia if listed). Name it `drukbazaars-db`. **Create**.
 3. Wait until it says **Running** (a few minutes).
 4. On the service's **Overview** page, note: **Host**, **Port**, **User** (`avnadmin`), **Password**,
    **Database** (`defaultdb`).
@@ -53,7 +53,7 @@ Nothing to run: the app creates every table on its first start (Flyway, versions
 
    | Setting | Value |
    |---|---|
-   | Name | `dkphar-api` (your address becomes `https://dkphar-api.onrender.com`; Render may add letters if taken) |
+   | Name | `drukbazaars-api` (your address becomes `https://drukbazaars-api.onrender.com`; Render may add letters if taken) |
    | Language | **Docker** |
    | Branch | `main` |
    | Region | **Singapore** (closest to Bhutan) |
@@ -69,7 +69,7 @@ Nothing to run: the app creates every table on its first start (Flyway, versions
    | `SPRING_DATASOURCE_USERNAME` | `avnadmin` |
    | `SPRING_DATASOURCE_PASSWORD` | the Aiven password |
    | `APP_FILES_STORE` | `database` (photos and documents kept in MySQL: Render's free disk is wiped on every restart) |
-   | `APP_PUBLIC_URL` | `https://dkphar-web.onrender.com` (the website's address from step 3; correct it there if Render gives another) |
+   | `APP_PUBLIC_URL` | `https://drukbazaars-web.onrender.com` (the website's address from step 3; correct it there if Render gives another) |
 
    For a **demo** where people can try paying (test mode, no real money, the code is 123456), also add:
 
@@ -84,7 +84,7 @@ Nothing to run: the app creates every table on its first start (Flyway, versions
 5. **Advanced** → **Health Check Path**: `/actuator/health`.
 6. **Create Web Service**. The first build takes 5 to 10 minutes. In **Logs**, success looks like
    `Successfully applied 7 migrations` and then `Started InventoryApplication`.
-7. Check: open `https://dkphar-api.onrender.com/actuator/health` → `{"status":"UP"}`.
+7. Check: open `https://drukbazaars-api.onrender.com/actuator/health` → `{"status":"UP"}`.
 
 ---
 
@@ -95,7 +95,7 @@ Nothing to run: the app creates every table on its first start (Flyway, versions
 
    | Setting | Value |
    |---|---|
-   | Name | `dkphar-web` |
+   | Name | `drukbazaars-web` |
    | Branch | `main` |
    | Build Command | `npm ci && npm run build` |
    | Publish Directory | `dist/inventory-project/browser` |
@@ -112,8 +112,8 @@ Nothing to run: the app creates every table on its first start (Flyway, versions
 
    | Source | Destination | Action |
    |---|---|---|
-   | `/api/*` | `https://dkphar-api.onrender.com/api/*` | Rewrite |
-   | `/uploads/*` | `https://dkphar-api.onrender.com/uploads/*` | Rewrite |
+   | `/api/*` | `https://drukbazaars-api.onrender.com/api/*` | Rewrite |
+   | `/uploads/*` | `https://drukbazaars-api.onrender.com/uploads/*` | Rewrite |
    | `/*` | `/index.html` | Rewrite |
 
    Save. (The first two send data and photo requests to the backend; the last lets pages like `/admin/orders`
@@ -124,8 +124,8 @@ Nothing to run: the app creates every table on its first start (Flyway, versions
 
    | Key | Value |
    |---|---|
-   | `APP_PUBLIC_URL` | `https://dkphar-web.onrender.com` |
-   | `APP_CORS_ALLOWED_ORIGINS` | `https://dkphar-web.onrender.com` |
+   | `APP_PUBLIC_URL` | `https://drukbazaars-web.onrender.com` |
+   | `APP_CORS_ALLOWED_ORIGINS` | `https://drukbazaars-web.onrender.com` |
 
    The second one is needed because the forwarded requests reach the backend under its own address: without it,
    sign-up and sign-in fail with "Invalid CORS request" (reading products still works).
@@ -174,7 +174,7 @@ Products, photos, customers, users and orders from your local `inventorydb`:
 
 - **Sleep:** with no visitors for 15 minutes the backend sleeps. The next visitor sees the website at once, but the
   data takes 1 to 3 minutes to appear (the free CPU is small). To keep it awake, a free monitor such as
-  UptimeRobot can open `https://dkphar-api.onrender.com/actuator/health` every 10 minutes; the 750 free hours a
+  UptimeRobot can open `https://drukbazaars-api.onrender.com/actuator/health` every 10 minutes; the 750 free hours a
   month are enough for one service running all month.
 - **Space:** Aiven free is 1 GB, and photos count. Use photos under 1 MB where you can.
 - **Idle database:** Aiven may switch off a free database that is not used for a long time (it emails first).

@@ -18,15 +18,15 @@ CREATE DATABASE IF NOT EXISTS inventorydb
   COLLATE utf8mb4_0900_ai_ci;
 
 -- The application's own account: it can only reach this one database, and only from this server.
--- If MySQL runs on a different machine than the application, use 'dkphar_app'@'APP-SERVER-ADDRESS' instead.
-CREATE USER IF NOT EXISTS 'dkphar_app'@'localhost' IDENTIFIED BY 'CHANGE_ME_TO_A_LONG_RANDOM_PASSWORD';
+-- If MySQL runs on a different machine than the application, use 'drukbazaars_app'@'APP-SERVER-ADDRESS' instead.
+CREATE USER IF NOT EXISTS 'drukbazaars_app'@'localhost' IDENTIFIED BY 'CHANGE_ME_TO_A_LONG_RANDOM_PASSWORD';
 
 -- What the application needs: read and write data, and (for Flyway) create and change tables.
 -- Not given: DROP, FILE, PROCESS, SUPER, GRANT ... (it cannot delete the database or read server files).
 GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES
-  ON inventorydb.* TO 'dkphar_app'@'localhost';
+  ON inventorydb.* TO 'drukbazaars_app'@'localhost';
 
 FLUSH PRIVILEGES;
 
 -- Check: should list the grants above
-SHOW GRANTS FOR 'dkphar_app'@'localhost';
+SHOW GRANTS FOR 'drukbazaars_app'@'localhost';

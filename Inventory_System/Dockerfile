@@ -13,9 +13,9 @@ RUN mvn -q -B -DskipTests package && cp target/Rest-api-*.jar /build/app.jar
 # ---- 2. Run it on the Java 26 runtime only ----
 FROM eclipse-temurin:26-jre
 WORKDIR /app
-RUN useradd --system --uid 10001 --home /app dkphar && chown dkphar /app
+RUN useradd --system --uid 10001 --home /app drukbazaars && chown drukbazaars /app
 COPY --from=build /build/app.jar /app/app.jar
-USER dkphar
+USER drukbazaars
 
 # The live-site settings (application-prod.properties). Memory is kept within a small host (Render free: 512 MB):
 # heap at most 60% of the container, one garbage-collector thread, the quick compiler only (faster start on a slow

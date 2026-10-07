@@ -15,7 +15,7 @@
     <artifactId>Rest-api</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>Rest-api</name>
-    <description>Inventory Management System project for Spring Boot</description>
+    <description>DP DrukBazaars: the online shop and marketplace API (Spring Boot)</description>
 
     <properties>
         <java.version>26</java.version>          <!-- CHANGED from 21 -->

@@ -82,9 +82,9 @@ CREATE TABLE IF NOT EXISTS `payment_intents` (
 
 -- ---------- New columns ----------
 -- MySQL 8 has no "ADD COLUMN IF NOT EXISTS", so a small helper checks first.
-DROP PROCEDURE IF EXISTS dkphar_add_column;
+DROP PROCEDURE IF EXISTS drukbazaars_add_column;
 DELIMITER //
-CREATE PROCEDURE dkphar_add_column(IN tbl VARCHAR(64), IN col VARCHAR(64), IN def VARCHAR(200))
+CREATE PROCEDURE drukbazaars_add_column(IN tbl VARCHAR(64), IN col VARCHAR(64), IN def VARCHAR(200))
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns
                  WHERE table_schema = DATABASE() AND table_name = tbl AND column_name = col) THEN
@@ -97,41 +97,41 @@ END //
 DELIMITER ;
 
 -- item_master
-CALL dkphar_add_column('item_master', 'delivery_size', 'varchar(10) NULL');
+CALL drukbazaars_add_column('item_master', 'delivery_size', 'varchar(10) NULL');
 -- marketplace_settings
-CALL dkphar_add_column('marketplace_settings', 'bulky_base_fee', 'decimal(10,2) NULL');
-CALL dkphar_add_column('marketplace_settings', 'bulky_per_km', 'decimal(10,2) NULL');
-CALL dkphar_add_column('marketplace_settings', 'included_km', 'decimal(5,1) NULL');
-CALL dkphar_add_column('marketplace_settings', 'large_base_fee', 'decimal(10,2) NULL');
-CALL dkphar_add_column('marketplace_settings', 'large_per_km', 'decimal(10,2) NULL');
-CALL dkphar_add_column('marketplace_settings', 'max_distance_km', 'decimal(6,1) NULL');
-CALL dkphar_add_column('marketplace_settings', 'medium_base_fee', 'decimal(10,2) NULL');
-CALL dkphar_add_column('marketplace_settings', 'medium_per_km', 'decimal(10,2) NULL');
-CALL dkphar_add_column('marketplace_settings', 'rider_share_percent', 'decimal(5,2) NULL');
-CALL dkphar_add_column('marketplace_settings', 'shop_latitude', 'double NULL');
-CALL dkphar_add_column('marketplace_settings', 'shop_longitude', 'double NULL');
-CALL dkphar_add_column('marketplace_settings', 'small_base_fee', 'decimal(10,2) NULL');
-CALL dkphar_add_column('marketplace_settings', 'small_per_km', 'decimal(10,2) NULL');
-CALL dkphar_add_column('marketplace_settings', 'unknown_distance_km', 'decimal(5,1) NULL');
-CALL dkphar_add_column('marketplace_settings', 'shop_address', 'varchar(300) NULL');
+CALL drukbazaars_add_column('marketplace_settings', 'bulky_base_fee', 'decimal(10,2) NULL');
+CALL drukbazaars_add_column('marketplace_settings', 'bulky_per_km', 'decimal(10,2) NULL');
+CALL drukbazaars_add_column('marketplace_settings', 'included_km', 'decimal(5,1) NULL');
+CALL drukbazaars_add_column('marketplace_settings', 'large_base_fee', 'decimal(10,2) NULL');
+CALL drukbazaars_add_column('marketplace_settings', 'large_per_km', 'decimal(10,2) NULL');
+CALL drukbazaars_add_column('marketplace_settings', 'max_distance_km', 'decimal(6,1) NULL');
+CALL drukbazaars_add_column('marketplace_settings', 'medium_base_fee', 'decimal(10,2) NULL');
+CALL drukbazaars_add_column('marketplace_settings', 'medium_per_km', 'decimal(10,2) NULL');
+CALL drukbazaars_add_column('marketplace_settings', 'rider_share_percent', 'decimal(5,2) NULL');
+CALL drukbazaars_add_column('marketplace_settings', 'shop_latitude', 'double NULL');
+CALL drukbazaars_add_column('marketplace_settings', 'shop_longitude', 'double NULL');
+CALL drukbazaars_add_column('marketplace_settings', 'small_base_fee', 'decimal(10,2) NULL');
+CALL drukbazaars_add_column('marketplace_settings', 'small_per_km', 'decimal(10,2) NULL');
+CALL drukbazaars_add_column('marketplace_settings', 'unknown_distance_km', 'decimal(5,1) NULL');
+CALL drukbazaars_add_column('marketplace_settings', 'shop_address', 'varchar(300) NULL');
 -- order_packages
-CALL dkphar_add_column('order_packages', 'distance_estimated', 'bit(1) NULL');
-CALL dkphar_add_column('order_packages', 'distance_km', 'decimal(6,1) NULL');
-CALL dkphar_add_column('order_packages', 'drop_latitude', 'double NULL');
-CALL dkphar_add_column('order_packages', 'drop_longitude', 'double NULL');
-CALL dkphar_add_column('order_packages', 'pickup_latitude', 'double NULL');
-CALL dkphar_add_column('order_packages', 'pickup_longitude', 'double NULL');
-CALL dkphar_add_column('order_packages', 'delivery_size', 'varchar(10) NULL');
+CALL drukbazaars_add_column('order_packages', 'distance_estimated', 'bit(1) NULL');
+CALL drukbazaars_add_column('order_packages', 'distance_km', 'decimal(6,1) NULL');
+CALL drukbazaars_add_column('order_packages', 'drop_latitude', 'double NULL');
+CALL drukbazaars_add_column('order_packages', 'drop_longitude', 'double NULL');
+CALL drukbazaars_add_column('order_packages', 'pickup_latitude', 'double NULL');
+CALL drukbazaars_add_column('order_packages', 'pickup_longitude', 'double NULL');
+CALL drukbazaars_add_column('order_packages', 'delivery_size', 'varchar(10) NULL');
 -- orders
-CALL dkphar_add_column('orders', 'drop_latitude', 'double NULL');
-CALL dkphar_add_column('orders', 'drop_longitude', 'double NULL');
-CALL dkphar_add_column('orders', 'drop_location', 'varchar(120) NULL');
+CALL drukbazaars_add_column('orders', 'drop_latitude', 'double NULL');
+CALL drukbazaars_add_column('orders', 'drop_longitude', 'double NULL');
+CALL drukbazaars_add_column('orders', 'drop_location', 'varchar(120) NULL');
 -- seller_profiles
-CALL dkphar_add_column('seller_profiles', 'pickup_latitude', 'double NULL');
-CALL dkphar_add_column('seller_profiles', 'pickup_longitude', 'double NULL');
+CALL drukbazaars_add_column('seller_profiles', 'pickup_latitude', 'double NULL');
+CALL drukbazaars_add_column('seller_profiles', 'pickup_longitude', 'double NULL');
 -- users
-CALL dkphar_add_column('users', 'password_changed_at', 'datetime(6) NULL');
+CALL drukbazaars_add_column('users', 'password_changed_at', 'datetime(6) NULL');
 
-DROP PROCEDURE dkphar_add_column;
+DROP PROCEDURE drukbazaars_add_column;
 
 -- Done. Start the application now.

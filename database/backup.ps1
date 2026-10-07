@@ -1,7 +1,7 @@
 # =====================================================================================
 # DP DrukBazaars: backup on Windows (the development computer, or a Windows server).
 #
-# Saves the database and the uploaded files into D:\dkphar-backups (change $BackupDir below)
+# Saves the database and the uploaded files into D:\drukbazaars-backups (change $BackupDir below)
 # and keeps the last 14 days. Run it by hand, or every night with Task Scheduler:
 #   Program: powershell.exe
 #   Arguments: -ExecutionPolicy Bypass -File D:\Inventory\database\backup.ps1
@@ -18,7 +18,7 @@ $ErrorActionPreference = 'Stop'
 $Database  = 'inventorydb'
 $MySqlUser = 'root'
 $MySqlBin  = 'C:\Program Files\MySQL\MySQL Server 8.0\bin'
-$BackupDir = 'D:\dkphar-backups'
+$BackupDir = 'D:\drukbazaars-backups'
 $KeepDays  = 14
 $Secrets   = Join-Path $PSScriptRoot '..\Inventory_System\secrets.properties'
 

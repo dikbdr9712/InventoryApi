@@ -6,30 +6,30 @@
 # drivers' identity documents), and keeps the last 14 days. Run it every night from cron:
 #
 #   sudo crontab -e
-#   15 2 * * *  /opt/dkphar/database/backup.sh >> /var/log/dkphar-backup.log 2>&1
+#   15 2 * * *  /opt/drukbazaars/database/backup.sh >> /var/log/drukbazaars-backup.log 2>&1
 #
-# The database password is NOT in this file. Put it in /etc/dkphar/backup.cnf (readable by root only):
+# The database password is NOT in this file. Put it in /etc/drukbazaars/backup.cnf (readable by root only):
 #   [client]
-#   user=dkphar_backup
+#   user=drukbazaars_backup
 #   password=THE_BACKUP_ACCOUNT_PASSWORD
 # and give that account read-only rights (as MySQL root):
-#   CREATE USER 'dkphar_backup'@'localhost' IDENTIFIED BY '...';
-#   GRANT SELECT, SHOW VIEW, TRIGGER, LOCK TABLES, EVENT, PROCESS ON *.* TO 'dkphar_backup'@'localhost';
-#   sudo chmod 600 /etc/dkphar/backup.cnf
+#   CREATE USER 'drukbazaars_backup'@'localhost' IDENTIFIED BY '...';
+#   GRANT SELECT, SHOW VIEW, TRIGGER, LOCK TABLES, EVENT, PROCESS ON *.* TO 'drukbazaars_backup'@'localhost';
+#   sudo chmod 600 /etc/drukbazaars/backup.cnf
 #
 # A backup on the same disk does not survive a broken disk: copy BACKUP_DIR to another place
 # every day too (another server, cloud storage, or an external drive), and try a restore now and then.
 #
 # Restore (on an empty database made with 01-create-database-and-user.sql):
 #   gunzip -c inventorydb-2026-10-02.sql.gz | mysql -u root -p inventorydb
-#   tar -xzf files-2026-10-02.tar.gz -C /opt/dkphar
+#   tar -xzf files-2026-10-02.tar.gz -C /opt/drukbazaars
 # =====================================================================================
 set -euo pipefail
 
 DB_NAME="${DB_NAME:-inventorydb}"
-CREDENTIALS="${CREDENTIALS:-/etc/dkphar/backup.cnf}"
-APP_DIR="${APP_DIR:-/opt/dkphar}"              # where the jar runs: uploads/ and private-uploads/ are here
-BACKUP_DIR="${BACKUP_DIR:-/var/backups/dkphar}"
+CREDENTIALS="${CREDENTIALS:-/etc/drukbazaars/backup.cnf}"
+APP_DIR="${APP_DIR:-/opt/drukbazaars}"              # where the jar runs: uploads/ and private-uploads/ are here
+BACKUP_DIR="${BACKUP_DIR:-/var/backups/drukbazaars}"
 KEEP_DAYS="${KEEP_DAYS:-14}"
 
 STAMP="$(date +%F)"

@@ -380,9 +380,9 @@ Secrets:
 - The MySQL root password was in application.properties in the PUBLIC GitHub repo. Moved to
   Inventory_System/secrets.properties (git-ignored, imported by spring.config.import). CHANGE the MySQL password
   (it is still in the git history) and put the new one in secrets.properties. Server: environment variables
-  (deploy/dkphar.env.example). application-prod.properties: secure cookie, forwarded headers, no test payments, INFO logs.
+  (deploy/drukbazaars.env.example). application-prod.properties: secure cookie, forwarded headers, no test payments, INFO logs.
 - CORS origins: app.cors.allowed-origins / APP_CORS_ALLOWED_ORIGINS (not needed behind Nginx on one address).
-Deploy: D:\Inventory\DEPLOY.md + deploy/nginx-dkphar.conf (HTTPS, /api and /uploads to 8080) + deploy/dkphar.service.
+Deploy: D:\Inventory\DEPLOY.md + deploy/nginx-drukbazaars.conf (HTTPS, /api and /uploads to 8080) + deploy/drukbazaars.service.
 Frontend: environment imageBase '' everywhere; proxy.conf.json now also forwards /uploads.
 Fixes and features (backend tests: 13, all pass, incl. GoLiveFeaturesTest):
 - Product photos: ProductPhotos gives each photo its own name (item-12-ab12cd34.jpg; before, products with the same
@@ -651,8 +651,8 @@ gone: it is an online shopping platform / marketplace for Bhutan.
   "replied:", partner pages, payment pages, cash drawer report.
 - Server: emails, text messages, notifications, delivery pickup names, the RMA payment description
   ("DP DrukBazaars order N"), the default sender (app.mail.from), the legal texts in resources/legal.
-- Not renamed on purpose: technical names (database user dkphar_app, deploy/dkphar.* files, the container user,
-  scratch database names) and the applied migrations V1-V9 (Flyway checks them; changing them stops the start).
+- Technical names are renamed too (section 33). Only the applied migrations V1-V9 keep "DK/Phar" in their comments:
+  Flyway checks them on every start, so changing them would stop the server.
 - The live database keeps version 1 of the Terms, Seller and Driver agreements with the old name: publish a new
   version in Marketplace > Terms (people are asked to accept it once).
 
@@ -686,3 +686,16 @@ Staff: Website > About page (/admin/about, Components/about-admin, permission si
   /admin/team/{id} PUT/DELETE, /admin/team/order PUT). V10__about_page.sql: site_texts, team_members (starts with the
   two people who were on the page). Audit: SITE_ABOUT_CHANGED, TEAM_MEMBER_ADDED / CHANGED / REMOVED.
   Tests: SiteAboutTest (1). 47 in all.
+
+## 33. Every name is DP DrukBazaars (7 Oct 2026)
+- Shop email everywhere: dpdrukbazaars@gmail.com (website footer and Contact page, receipts and invoices, the legal
+  texts' contact line). The phone stays 77269712.
+- Technical names: dkphar -> drukbazaars. deploy/drukbazaars.env.example, deploy/drukbazaars.service,
+  deploy/nginx-drukbazaars.conf (server folders /opt/drukbazaars, /etc/drukbazaars, /var/www/drukbazaars, Linux user
+  drukbazaars, the jar drukbazaars-api.jar, example domain drukbazaars.bt), database users drukbazaars_app and
+  drukbazaars_backup (database/ scripts, for a NEW server), the container user, the example Render names
+  (drukbazaars-db / -api / -web), spring.application.name=drukbazaars, the pom description.
+- Kept on purpose: the applied migrations V1-V9 (Flyway checksums), V10's starting team data (already applied; names
+  are changed in Website > About page), the Java package com.api.inventory, the Angular project name inventory-project
+  (Render's static site publishes dist/inventory-project/browser), the GitHub repositories and the Render addresses
+  (inventoryapi-qqjz / inventoryweb-a461: an onrender.com address cannot be renamed; a domain of your own can be added).

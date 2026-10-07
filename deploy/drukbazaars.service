@@ -1,0 +1,26 @@
+# DP DrukBazaars API as a Linux service (systemd).
+#   sudo cp deploy/drukbazaars.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now drukbazaars
+#   journalctl -u drukbazaars -f        (the log)
+[Unit]
+Description=DP DrukBazaars API
+After=network.target mysql.service
+Wants=mysql.service
+
+[Service]
+User=drukbazaars
+Group=drukbazaars
+WorkingDirectory=/opt/drukbazaars
+EnvironmentFile=/etc/drukbazaars/drukbazaars.env
+ExecStart=/usr/bin/java -Xms256m -Xmx768m -jar /opt/drukbazaars/drukbazaars-api.jar --spring.profiles.active=prod
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=10
+# hardening: the service can only write in its own folder
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/drukbazaars
+
+[Install]
+WantedBy=multi-user.target
