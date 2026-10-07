@@ -57,6 +57,11 @@ public class EmailService {
         return enabled && mailSender.getIfAvailable() != null;
     }
 
+    /** An email sent now reaches someone: the inbox, or the log on a developer's computer. */
+    public boolean isAvailable() {
+        return isEnabled() || logBody;
+    }
+
     private void deliver(String to, String subject, String body) {
         JavaMailSender sender = enabled ? mailSender.getIfAvailable() : null;
         if (sender == null) {

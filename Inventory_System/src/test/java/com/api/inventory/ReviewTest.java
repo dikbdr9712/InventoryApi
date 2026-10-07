@@ -154,8 +154,9 @@ class ReviewTest {
         http.perform(get("/api/reviews/service")).andExpect(status().isOk()).andExpect(jsonPath("$.count").isNumber());
         http.perform(get("/api/reviews/orders/1")).andExpect(status().isUnauthorized());
         http.perform(get("/api/reviews/admin")).andExpect(status().isUnauthorized());
-        // the email account is not set up in tests: the page will tell people to ask the shop
-        http.perform(get("/api/auth/forgot-password")).andExpect(status().isOk()).andExpect(jsonPath("$.email").value(false));
+        // emails cannot go out here (caught by the test): the page will not offer the email way
+        http.perform(get("/api/auth/forgot-password")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value(false)).andExpect(jsonPath("$.sms").isBoolean());
     }
 
     // ================= Helpers =================

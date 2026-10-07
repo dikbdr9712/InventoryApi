@@ -51,9 +51,6 @@ public class AuthController {
     private com.api.inventory.service.PasswordResetService passwordReset;
 
     @Autowired
-    private com.api.inventory.service.EmailService email;
-
-    @Autowired
     private com.api.inventory.service.LegalTermsService legal;
 
     @Autowired
@@ -191,21 +188,38 @@ public class AuthController {
 
     // ================= Forgot password =================
 
-    /** Sends a reset link by email. The answer is the same whether or not the email has an account. */
     /**
-     * Can this server send the reset email? When it cannot (no email account set up, for example on free hosting),
-     * the page tells people to ask the shop instead of waiting for an email that never comes.
+     * Which ways can send the reset code: email, text message (SMS). A way the server cannot use (no email account
+     * or SMS provider set up, for example on free hosting) is not offered; with neither, the page says to ask the shop.
      */
     @GetMapping("/forgot-password")
     public Map<String, Boolean> forgotPasswordAvailable() {
-        return Map.of("email", email.isEnabled());
+        var ways = passwordReset.ways();
+        return Map.of("email", ways.email(), "sms", ways.sms());
     }
 
+    /**
+     * Step 1: a 6-digit code by email ({method: "email", email}) or text message ({method: "sms", phone}).
+     * The answer is the same whether or not the email or number has an account.
+     */
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body, HttpServletRequest httpRequest) {
-        passwordReset.request(body == null ? null : body.get("email"), clientIp(httpRequest));
-        return ResponseEntity.ok(Map.of("message",
-                "If an account uses that email, we have sent it a link to choose a new password. The link works for 30 minutes."));
+        Map<String, String> b = body == null ? Map.of() : body;
+        String channel = com.api.inventory.service.PasswordResetService.channel(b.get("method"));
+        passwordReset.sendCode(b.get("method"), b.get("email"), b.get("phone"), clientIp(httpRequest));
+        String message = com.api.inventory.entity.PasswordResetCode.EMAIL.equals(channel)
+                ? "If an account uses that email, we have sent it a 6-digit code and a link. The code works for 10 minutes."
+                : "If an account uses that phone number, we have sent it a 6-digit code by text message. It works for 10 minutes.";
+        return ResponseEntity.ok(Map.of("message", message,
+                "resendAfter", com.api.inventory.service.PasswordResetService.RESEND_AFTER_SECONDS));
+    }
+
+    /** Step 2: the code from the message. The right one gives a ticket (15 minutes, once) for step 3. */
+    @PostMapping("/forgot-password/verify")
+    public Map<String, String> verifyResetCode(@RequestBody Map<String, String> body, HttpServletRequest httpRequest) {
+        Map<String, String> b = body == null ? Map.of() : body;
+        String ticket = passwordReset.verifyCode(b.get("method"), b.get("email"), b.get("phone"), b.get("code"), clientIp(httpRequest));
+        return Map.of("token", ticket);
     }
 
     /** Is this link still good? (The page shows the form, or explains that the link expired.) */
@@ -214,10 +228,12 @@ public class AuthController {
         return Map.of("valid", passwordReset.isValid(token));
     }
 
+    /** Step 3 (or the email link): the new password. The answer holds the account's email, to sign in with. */
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> body) {
-        passwordReset.reset(body == null ? null : body.get("token"), body == null ? null : body.get("newPassword"), MIN_PASSWORD_LENGTH);
-        return ResponseEntity.ok(Map.of("message", "Your password has been changed. Sign in with the new password."));
+        String accountEmail = passwordReset.reset(body == null ? null : body.get("token"), body == null ? null : body.get("newPassword"), MIN_PASSWORD_LENGTH);
+        return ResponseEntity.ok(Map.of("message", "Your password has been changed. Sign in with the new password.",
+                "email", accountEmail));
     }
 
     private static String clientIp(HttpServletRequest request) {

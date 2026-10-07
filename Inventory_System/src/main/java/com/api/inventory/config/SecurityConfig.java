@@ -45,7 +45,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // public: signing in and up
                         .requestMatchers("/api/auth/login", "/api/auth/signup", "/api/auth/logout", "/api/auth/me",
-                                "/api/auth/forgot-password", "/api/auth/reset-password", "/api/auth/reset-password/check").permitAll()
+                                "/api/auth/forgot-password", "/api/auth/forgot-password/verify", "/api/auth/reset-password",
+                                "/api/auth/reset-password/check").permitAll()
                         // public: the shop window
                         .requestMatchers(HttpMethod.GET, "/api/items/allItems", "/api/items/*", "/api/items/stock/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/marketplace/settings").permitAll()

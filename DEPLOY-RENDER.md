@@ -179,9 +179,11 @@ Products, photos, customers, users and orders from your local `inventorydb`:
 - **Space:** Aiven free is 1 GB, and photos count. Use photos under 1 MB where you can.
 - **Idle database:** Aiven may switch off a free database that is not used for a long time (it emails first).
   Switch it on again in the Aiven console.
-- **Emails** (password reset by email, order updates) are not sent until you add an email account. Until then the
-  "Forgot password?" page tells customers to call or message the shop, and staff give them a temporary password in
-  **People & access**. Render's free plan blocks the usual email ports (25, 465, 587), so Gmail does not work here.
+- **Forgot password:** customers get a 6-digit code by **email** or by **text message**, type it, and choose a new
+  password themselves. Each way is offered only once it is set up below; with neither, the page tells customers to
+  call or message the shop, and staff give them a temporary password in **People & access**.
+- **Emails** (reset codes, order updates) are not sent until you add an email account.
+  Render's free plan blocks the usual email ports (25, 465, 587), so Gmail does not work here.
   Brevo's free plan (300 emails a day) also listens on port **2525**, which is not blocked:
   1. Sign up at brevo.com. Under **Senders, domains & dedicated IPs → Senders**, add and confirm the address the
      emails come from.
@@ -197,7 +199,17 @@ Products, photos, customers, users and orders from your local `inventorydb`:
      | `SPRING_MAIL_PASSWORD` | the SMTP key from step 2 |
      | `APP_MAIL_FROM` | `DK/Phar <the address you confirmed in step 1>` |
 
-  4. **Save, rebuild, and deploy**. The "Forgot password?" page then shows the form that emails a reset code.
+  4. **Save, rebuild, and deploy**. On "Forgot password?" the **Email** choice then works (a code and a link).
+- **Text messages (SMS)** are never free: you need a paid SMS account. Until one is added, the **Text message**
+  choice on "Forgot password?" shows "Not available yet". Two ways, both in InventoryApi → **Environment**:
+  - **A bulk SMS account from a Bhutanese operator** (ask B-Mobile or TashiCell for business / bulk SMS). They give a
+    web address that sends a message; put `{to}` where the 8-digit number goes and `{text}` where the message goes:
+    `APP_SMS_ENABLED` = `true`, `APP_SMS_URL` = for example `https://sms.example.bt/send?key=YOURKEY&to=975{to}&text={text}`
+  - **Twilio** (pay as you go; a free trial cannot send our own text, so the account must be upgraded):
+    `APP_SMS_ENABLED` = `true`, `APP_SMS_PROVIDER` = `twilio`, `APP_SMS_TWILIO_ACCOUNT_SID` and
+    `APP_SMS_TWILIO_AUTH_TOKEN` (Twilio Console → Account info), `APP_SMS_TWILIO_FROM` = a sender name such as
+    `DKPhar` (Bhutan accepts letter sender names) or a Twilio number / Messaging Service id (`MG...`).
+  Save, rebuild, and deploy; then try "Forgot password?" → Text message with your own number.
 - **Updates:** push to GitHub and Render deploys both by itself. Database changes (new `V9__...sql`) apply on start.
 - **Passwords** go only into Render's Environment page, never into the code.
 - **Faster and still free:** an Oracle Cloud "Always Free" server (no sleeping, much more memory) follows DEPLOY.md

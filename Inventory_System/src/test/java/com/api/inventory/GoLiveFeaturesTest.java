@@ -88,6 +88,7 @@ class GoLiveFeaturesTest {
     void forgotPasswordLinkWorksOnceAndSignsOutEverywhere() throws Exception {
         MockMvc http = MockMvcBuilders.webAppContextSetup(context).addFilters(securityChain).build();
         User u = user("dawa@golive.bt", "USER", "17300001", "old-secret");
+        when(email.isAvailable()).thenReturn(true); // the server can send emails
 
         MockHttpSession oldSession = (MockHttpSession) http.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"dawa@golive.bt\",\"password\":\"old-secret\"}"))

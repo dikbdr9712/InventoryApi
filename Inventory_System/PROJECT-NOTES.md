@@ -586,9 +586,8 @@ and the session cookie stays first-party).
 - Tests: FilesInDatabaseTest (1). 41 in all.
 
 ## 28. Ratings and reviews; help when a password is forgotten (7 Oct 2026)
-Forgotten password:
-- GET /api/auth/forgot-password (public) answers {email: true|false}: whether reset e-mails can be sent
-  (app.mail.enabled). With e-mail on, /forgot-password works as before (a code by e-mail, then a new password).
+Forgotten password (the self-service part is now section 29):
+- GET /api/auth/forgot-password (public) answers which ways can send a reset code (see 29).
 - With e-mail off (Render free blocks SMTP ports 25/465/587), the page shows "Ask us to reset it" instead of the form:
   call the shop, or "Send a message" (/contact?subject=Forgot my password, text filled in). Staff reset the password
   in People & access (shows a temporary password); the customer changes it in My profile.
@@ -617,3 +616,29 @@ products/{itemId}, summary, service; signed in: GET orders/{orderId}, POST order
 POST orders/{orderId}/service; reviews.manage: GET admin, POST admin/{products|service}/{id}/hidden and /reply).
 V8__reviews.sql: product_reviews (unique user_email + item_id), order_feedback (unique order_id).
 Tests: ReviewTest (2). 43 in all.
+
+## 29. Forgot password: the customer resets it with a code by email or text message (7 Oct 2026)
+/forgot-password (Components/forgot-password, 3 steps):
+  1. Choose Email or Text message, type the email or phone (+975, 8 digits; spaces and +975 are fine). "Email me a
+     code" / "Text me a code". The answer is the same whether or not the account exists.
+  2. Type the 6-digit code (checked as soon as 6 digits are in; works with the phone's code autofill). "Send a new
+     code" after 60 s; "Use another email, or my phone". The email also holds a link (/reset-password, 30 minutes).
+  3. New password twice (at least 6), then "Password changed" -> Sign in with the email filled in (passed in the
+     browser's history state, not the address). Every other device is signed out; an email tells the owner.
+  Always shown: "No access to that email or phone any more? Call / send us a message".
+- GET /api/auth/forgot-password -> {email, sms}: a way is offered when it really sends (APP_MAIL_ENABLED; SMS on and
+  its provider filled in) or, on a developer's computer, when unsent messages go to the log (app.mail.log-body,
+  app.sms.log-text: true by default, false in the prod profile). A way not offered shows "Not available yet";
+  with neither, the old "Ask us to reset it" panel.
+- POST /api/auth/forgot-password {method: email|sms, email | phone} -> {message, resendAfter: 60}
+  POST /api/auth/forgot-password/verify {method, email | phone, code} -> {token} (one-time ticket, 15 minutes)
+  POST /api/auth/reset-password {token, newPassword} -> {message, email} (ticket, or the token from the email link)
+- Safety: only a BCrypt hash of the code is stored; 10 minutes, 5 wrong tries, a new code cancels the old ones;
+  1 code a minute and 3 an hour per account and way; 10 requests and 30 tries an hour per internet address; same
+  answers (and about the same time) for unknown accounts; after the reset every other link, ticket and code stops.
+  Codes are never written to the server's log.
+- SmsService: app.sms.provider=url (any bulk SMS web address with {to} {text}, e.g. B-Mobile / TashiCell business
+  SMS) or twilio (app.sms.twilio.account-sid / auth-token / from; numbers sent as +975XXXXXXXX). A Twilio trial
+  cannot send our own text, so it needs an upgraded account. See DEPLOY-RENDER.md.
+- PasswordResetService (sendCode, verifyCode, reset), PasswordResetCode + repository, V9__password_reset_codes.sql.
+  Audit: PASSWORD_RESET_CODE_OK, PASSWORD_RESET_SELF. Tests: PasswordResetCodeTest (3). 46 in all.
