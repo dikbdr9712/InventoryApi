@@ -17,6 +17,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 	List<Order> findByCustomerEmail(String customerEmail);
 	List<Order> findAllByOrderByCreatedAtDesc();
 	List<Order> findByOrderStatus(String status);
+	long countByOrderStatusIgnoreCase(String status);
 	List<Order> findBySource(String source);
 
 	/** The order board: online orders placed in a period (from inclusive, to exclusive). */

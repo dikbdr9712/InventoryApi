@@ -10,4 +10,5 @@ public interface SellerProfileRepository extends JpaRepository<SellerProfile, Lo
     Optional<SellerProfile> findByUserEmail(String email);
     List<SellerProfile> findAllByOrderByCreatedAtDesc();
     List<SellerProfile> findByCidNumber(String cidNumber);
+    long countByStatus(String status);
 }

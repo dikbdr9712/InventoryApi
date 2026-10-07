@@ -667,3 +667,22 @@ gone: it is an online shopping platform / marketplace for Bhutan.
 - Still "test" on purpose: the live site's bank payments run in TEST MODE (APP_PAYMENTS_BANK_MODE=test with
   APP_PAYMENTS_BANK_TEST_ON_LIVE_SITE=true), so the payment pages say "TEST MODE: no real money". That wording
   goes away by itself when the RMA Payment Gateway is connected (APP_PAYMENTS_BANK_MODE=rma, see DEPLOY.md).
+
+## 32. The About page, managed by staff (7 Oct 2026)
+/about (Components/about) is now built from the server (GET /api/site/about, open to everyone):
+  "Online shopping, made in Bhutan" + the introduction, Start shopping / Get in touch; the live numbers (products
+  customers can see, approved sellers, delivered orders, the average service rating; a 0 is never shown); mission and
+  vision; "How DP DrukBazaars works" (Shop / Sell / Deliver, linking to /products, /sell, /deliver); Meet the team
+  (photo or initials, name, role, a short introduction); "Need help?" (call, send a message, find my order).
+  If the server cannot be reached, the built-in wording shows and the team is left out.
+Staff: Website > About page (/admin/about, Components/about-admin, permission site.manage "Edit the website pages":
+  ADMIN always; give it to other roles in People & access):
+  - Texts: introduction (600), mission (800), vision (800), each with "Use the original wording"; show or hide the
+    live numbers; "Last changed ... by ...". A text never changed is not stored: SiteService.DEFAULTS is used.
+  - Team: add (name, role, about them up to 400, photo JPG/PNG/WEBP/GIF up to 5 MB, shown or hidden), edit, change
+    or remove the photo, hide / show, move up / down, remove (asks first; the uploaded photo is deleted).
+    Photos go to the file store as /uploads/team-{id}-{random}.{ext} (in the database on Render).
+- Backend: SiteService, SiteController (/api/site/about; /api/site/admin/about GET/PUT, /admin/team POST,
+  /admin/team/{id} PUT/DELETE, /admin/team/order PUT). V10__about_page.sql: site_texts, team_members (starts with the
+  two people who were on the page). Audit: SITE_ABOUT_CHANGED, TEAM_MEMBER_ADDED / CHANGED / REMOVED.
+  Tests: SiteAboutTest (1). 47 in all.

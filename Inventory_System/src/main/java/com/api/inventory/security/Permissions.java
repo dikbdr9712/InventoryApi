@@ -65,6 +65,8 @@ public final class Permissions {
                     "Add people, switch accounts off, reset passwords, and change what each role may do.", true),
             new Definition("marketplace.manage", "Administration", "Run the marketplace",
                     "Approve sellers and riders, set commission and delivery fees, record payouts.", true),
+            new Definition("site.manage", "Administration", "Edit the website pages",
+                    "Change the About page: its texts, the live numbers, and the team members with their photos.", false),
             // Marketplace sellers (their own shop only, never other sellers' data)
             new Definition("seller.portal", "Marketplace sellers", "Seller dashboard",
                     "Open My shop and see its overview.", false),
