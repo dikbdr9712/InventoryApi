@@ -75,6 +75,17 @@ public class Order {
     @Column(name = "delivery_fee", precision = 12, scale = 2)
     private BigDecimal deliveryFee;
 
+    /** DELIVERY: a driver brings it. PICKUP: the customer collects it (no delivery fee). */
+    @Column(nullable = false, length = 10)
+    private String fulfilment = DELIVERY;
+
+    public static final String DELIVERY = "DELIVERY";
+    public static final String PICKUP = "PICKUP";
+
+    public boolean isPickup() {
+        return PICKUP.equals(fulfilment);
+    }
+
     /** The customer this order belongs to (online buyer, or a counter customer who gave a phone number). */
     @Column(name = "customer_id")
     private Long customerId;

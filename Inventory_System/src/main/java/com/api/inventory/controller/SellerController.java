@@ -64,6 +64,13 @@ public class SellerController {
         return packages.markPacked(id);
     }
 
+    /** "Pick up myself": the customer collects it at the seller's; the seller types the customer's collection code. */
+    @PreAuthorize("hasAuthority('seller.orders')")
+    @PostMapping("/packages/{id}/handover")
+    public PackageView handOver(@PathVariable Long id, @RequestBody DeliverRequest request) {
+        return packages.handOver(id, request == null ? null : request.code());
+    }
+
     @PreAuthorize("hasAuthority('seller.earnings')")
     @GetMapping("/ledger")
     public List<LedgerView> ledger() {

@@ -72,6 +72,10 @@ public class ItemMaster {
     @Column(name = "image_path")
     private String imagePath;
 
+    /** "Warn me when stock reaches": stock at or below this number tells the people who restock. Empty = no warning. */
+    @Column(name = "low_stock_threshold")
+    private Integer lowStockThreshold;
+
     /** The SellerProfile that sells this product. Empty = our own shop's product. */
     @Column(name = "seller_id")
     private Long sellerId;

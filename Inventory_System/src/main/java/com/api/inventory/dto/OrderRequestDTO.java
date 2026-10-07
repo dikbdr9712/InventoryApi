@@ -21,6 +21,7 @@ public class OrderRequestDTO {
     
     // Primary format: list of items (used by cart)
     private List<Item> items;
+    private String fulfilment; // DELIVERY (default) or PICKUP: the customer collects it
     
     // Fallback fields for single-item "Buy Now" flow
     private Long itemId;
@@ -66,6 +67,14 @@ public class OrderRequestDTO {
 
     public void setTotalAmount(BigDecimal totalAmount) {
         this.totalAmount = totalAmount;
+    }
+
+    public String getFulfilment() {
+        return fulfilment;
+    }
+
+    public void setFulfilment(String fulfilment) {
+        this.fulfilment = fulfilment;
     }
 
     public List<Item> getItems() {

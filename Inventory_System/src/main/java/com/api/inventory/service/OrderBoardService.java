@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
  *   2 VERIFY       a payment waits for staff (a transfer to check, a bank payment without an answer, a problem)
  *   3 PACK         paid: to pack (a staff member for our own shop, or the seller)
  *   4 READY        packed, waiting for a driver (or for us to deliver it)
+ *     COLLECT      packed, waiting for the customer to collect it ("Pick up myself")
  *   5 ASSIGNED     a driver is on the way to collect it
  *   6 ON_THE_WAY   picked up, going to the customer
  *   7 DELIVERED    delivered (the last 2 days are shown)
@@ -38,12 +39,12 @@ public class OrderBoardService {
 
     private static final ZoneId SHOP_ZONE = ZoneId.of("Asia/Thimphu");
 
-    public record Targets(int verifyMinutes, int packMinutes, int pickupMinutes, int deliverMinutes, int unpaidMinutes) {
+    public record Targets(int verifyMinutes, int packMinutes, int pickupMinutes, int deliverMinutes, int unpaidMinutes, int collectMinutes) {
     }
 
     /** placed: orders placed in the period. olderOpen: orders placed before it, still not delivered (shown when asked). */
     public record Counts(int awaitingPayment, int verify, int toPack, int toPackNotStarted, int ready, int riderComing,
-                         int onTheWay, int delivered, int cancelled, int late, int needsAction, int placed, int olderOpen) {
+                         int onTheWay, int delivered, int cancelled, int late, int needsAction, int placed, int olderOpen, int toCollect) {
     }
 
     public record Line(String name, int quantity, BigDecimal unitPrice) {
@@ -60,7 +61,8 @@ public class OrderBoardService {
                        String courierName, String deliverySize, BigDecimal distanceKm,
                        Instant placedAt, Instant stageSince, long minutesInStage, Integer targetMinutes, boolean late,
                        Instant packedAt, Instant assignedAt, Instant pickedUpAt, Instant deliveredAt, Instant cancelledAt,
-                       BigDecimal deliveryFee, BigDecimal riderPay, String pickupTown, boolean older) {
+                       BigDecimal deliveryFee, BigDecimal riderPay, String pickupTown, boolean older,
+                       boolean selfPickup, String handedOverByName) {
     }
 
     /** packing: packages they are packing now; packed: packed in the period. */
@@ -97,7 +99,8 @@ public class OrderBoardService {
                              @Value("${app.orders.target.pack-minutes:240}") int packMinutes,
                              @Value("${app.orders.target.pickup-minutes:120}") int pickupMinutes,
                              @Value("${app.orders.target.deliver-minutes:180}") int deliverMinutes,
-                             @Value("${app.orders.target.unpaid-minutes:1440}") int unpaidMinutes) {
+                             @Value("${app.orders.target.unpaid-minutes:1440}") int unpaidMinutes,
+                             @Value("${app.orders.target.collect-minutes:4320}") int collectMinutes) {
         this.orders = orders;
         this.packages = packages;
         this.orderItems = orderItems;
@@ -108,7 +111,7 @@ public class OrderBoardService {
         this.riders = riders;
         this.users = users;
         this.access = access;
-        this.targets = new Targets(verifyMinutes, packMinutes, pickupMinutes, deliverMinutes, unpaidMinutes);
+        this.targets = new Targets(verifyMinutes, packMinutes, pickupMinutes, deliverMinutes, unpaidMinutes, collectMinutes);
     }
 
     @Transactional(readOnly = true)
@@ -227,7 +230,11 @@ public class OrderBoardService {
                 Integer target;
                 switch (p.getStatus()) {
                     case OrderPackage.TO_PACK -> { stage = "PACK"; stageSince = paidAt; target = targets.packMinutes(); }
-                    case OrderPackage.READY_FOR_PICKUP -> { stage = "READY"; stageSince = nz(p.getPackedAt(), paidAt); target = targets.pickupMinutes(); }
+                    case OrderPackage.READY_FOR_PICKUP -> {
+                        stageSince = nz(p.getPackedAt(), paidAt);
+                        if (p.isSelfPickup()) { stage = "COLLECT"; target = targets.collectMinutes(); }
+                        else { stage = "READY"; target = targets.pickupMinutes(); }
+                    }
                     case OrderPackage.ASSIGNED -> { stage = "ASSIGNED"; stageSince = nz(p.getPackedAt(), paidAt); target = targets.pickupMinutes(); }
                     case OrderPackage.PICKED_UP -> { stage = "ON_THE_WAY"; stageSince = nz(p.getPickedUpAt(), paidAt); target = targets.deliverMinutes(); }
                     case OrderPackage.DELIVERED -> { stage = "DELIVERED"; stageSince = nz(p.getDeliveredAt(), paidAt); target = null; }
@@ -247,7 +254,7 @@ public class OrderBoardService {
         // the oldest (most urgent) first inside each step
         items.sort(Comparator.comparing((Item i) -> !i.late()).thenComparing(Item::stageSince, Comparator.nullsLast(Comparator.naturalOrder())));
 
-        int awaiting = 0, verify = 0, toPack = 0, notStarted = 0, ready = 0, coming = 0, onWay = 0, delivered = 0, cancelled = 0, late = 0;
+        int awaiting = 0, verify = 0, toPack = 0, notStarted = 0, ready = 0, collect = 0, coming = 0, onWay = 0, delivered = 0, cancelled = 0, late = 0;
         for (Item i : items) {
             switch (i.stage()) {
                 case "PAYMENT_DUE" -> awaiting++;
@@ -259,6 +266,7 @@ public class OrderBoardService {
                     }
                 }
                 case "READY" -> ready++;
+                case "COLLECT" -> collect++;
                 case "ASSIGNED" -> coming++;
                 case "ON_THE_WAY" -> onWay++;
                 case "DELIVERED" -> delivered++;
@@ -271,7 +279,7 @@ public class OrderBoardService {
             }
         }
         Counts counts = new Counts(awaiting, verify, toPack, notStarted, ready, coming, onWay, delivered, cancelled, late,
-                verify + toPack + ready, placedInPeriod, olderOpen.size());
+                verify + toPack + ready, placedInPeriod, olderOpen.size(), collect);
 
         // ---- the team ----
         List<Packer> packers = new ArrayList<>();
@@ -415,7 +423,8 @@ public class OrderBoardService {
                     pkg == null ? null : pkg.getPickedUpAt(), pkg == null ? null : pkg.getDeliveredAt(),
                     pkg == null ? cancelledAt : pkg.getCancelledAt(),
                     pkg == null ? null : pkg.getDeliveryFee(), pkg == null ? null : pkg.getRiderPay(),
-                    seller == null ? null : seller.getTown(), older);
+                    seller == null ? null : seller.getTown(), older,
+                    pkg != null && pkg.isSelfPickup(), pkg == null || pkg.getHandedOverBy() == null ? null : nameOf.apply(pkg.getHandedOverBy()));
         }
     }
 

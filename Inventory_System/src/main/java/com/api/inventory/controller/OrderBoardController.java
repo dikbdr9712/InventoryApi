@@ -44,6 +44,13 @@ public class OrderBoardController {
         return board.board(from, to, older);
     }
 
+    /** "Pick up myself": the customer came to collect it. The collection code may be left out (staff checked who it is). */
+    @PostMapping("/packages/{id}/handover")
+    @PreAuthorize("hasAuthority('orders.fulfil')")
+    public PackageView handOver(@PathVariable Long id, @RequestBody(required = false) com.api.inventory.dto.MarketplaceDTOs.DeliverRequest request) {
+        return packages.handOver(id, request == null ? null : request.code());
+    }
+
     @PostMapping("/packages/{id}/take")
     @PreAuthorize("hasAuthority('orders.fulfil')")
     public PackageView take(@PathVariable Long id) {

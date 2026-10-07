@@ -60,7 +60,7 @@ D:\Inventory
 │   ├── src\main\java\com\api\inventory\   code (section 5)
 │   ├── src\main\resources\
 │   │   ├── application.properties, application-prod.properties
-│   │   ├── db\migration\         Flyway: V1__... to V10__...
+│   │   ├── db\migration\         Flyway: V1__... to V12__...
 │   │   └── legal\                first versions of the agreements
 │   ├── src\test\java\...         tests (section 12)
 │   ├── secrets.properties        local database password (git-ignored)
@@ -151,7 +151,7 @@ Package `com.api.inventory`:
 | `exception` | GlobalExceptionHandler: every error has the same JSON shape `{status, error, message}`; faults are logged with a reference and never show program details |
 | `repository` | Spring Data repositories |
 | `security` | `SessionAuthenticationFilter` (who is calling, from the session, checked against the database on every request), `Permissions` (the catalog and defaults), `AccessControlService` (roles and their permissions), `CurrentUser`, `OrderAccess` (owner checks) |
-| `service` | The business rules. Key ones: `OrderService(Impl)`, `PackageService`, `OrderBoardService`, `StockService` (the only place stock moves), `DeliveryPricingService`, `MarketplaceService`, `OnlinePaymentService`, `BankPaymentService`, `ReceiptService`, `JournalNumbers`, `NotificationService`, `EmailService`, `SmsService`, `PasswordResetService`, `ReviewService`, `SiteService`, `LegalTermsService`, `CustomerService`, `PosShiftService`, `SalesReturnService`, `AuditService` |
+| `service` | The business rules. Key ones: `OrderService(Impl)`, `PackageService`, `AccountDetailsService`, `OrderBoardService`, `StockService` (the only place stock moves), `DeliveryPricingService`, `MarketplaceService`, `OnlinePaymentService`, `BankPaymentService`, `ReceiptService`, `JournalNumbers`, `NotificationService`, `EmailService`, `SmsService`, `PasswordResetService`, `ReviewService`, `SiteService`, `LegalTermsService`, `CustomerService`, `PosShiftService`, `SalesReturnService`, `AuditService` |
 | `service/payments` | `BankGatewayClient` with `TestBankGatewayClient` and `RmaBankGatewayClient` (signed messages to the RMA Payment Gateway), `PaymentGateway` (older online-payment interface) |
 | `service/files` | `FileStore` with `DiskFileStore` and `DatabaseFileStore` |
 
@@ -162,7 +162,8 @@ Package `com.api.inventory`:
 - **Interceptors**: `session-expired` signs the browser out when the server answers 401.
 - **Permissions**: the server sends the signed-in person's permissions; `AuthService.can()` uses them.
   `utils/permissions.ts` lists them with labels; `utils/staff-nav.ts` builds the staff bar from them.
-- **Shop details** (name, phone, email, address): `utils/shop-info.ts` (and the receipt header in `pos.ts`).
+- **Shop details** (phone numbers, email, address, links): managed by staff, loaded once by `services/shop-details.ts`
+  (`ShopDetails`: `shop.phone`, `shop.links()`, ...), which falls back to `utils/shop-info.ts` until the server answers.
 - **Styles**: design tokens in `src/theme.css` (`--green`, `--saffron`, `--ink`, ...). Do not reuse Bootstrap class
   names (`row`, `card`, `toast`, ...) for your own styles.
 - **The app is zoneless**: change a signal, not a plain field, when the screen must update after a server answer.
@@ -223,6 +224,8 @@ Flyway builds the database from `src/main/resources/db/migration`. Hibernate onl
 | V8 | Reviews (`product_reviews`, `order_feedback`) |
 | V9 | Forgot-password codes (`password_reset_codes`) |
 | V10 | The About page (`site_texts`, `team_members`) |
+| V11 | Low-stock warning level (`item_master.low_stock_threshold`) |
+| V12 | Pick up myself (`orders.fulfilment` DELIVERY/PICKUP, `order_packages.self_pickup`, `order_packages.handed_over_by`) |
 
 Tables by area:
 
@@ -240,8 +243,8 @@ Tables by area:
 
 Rules:
 
-- **Never change a migration that has run** (V1 to V10): Flyway checks them on every start and the server refuses to
-  start. A change is always a new file, `V11__what_it_does.sql`.
+- **Never change a migration that has run** (V1 to V12): Flyway checks them on every start and the server refuses to
+  start. A change is always a new file, `V13__what_it_does.sql`.
 - Write migrations for MySQL 8 and check them on a scratch MySQL database before pushing (tests run on H2).
 - Times are stored in UTC; entities use `Instant`. Money is `DECIMAL`.
 - Data the app needs (roles, permissions, agreements, settings) is created by the app on start, not by hand.
@@ -260,6 +263,7 @@ All addresses start with `/api`. Answers are JSON. Errors: `{"status": 400, "err
 | | `POST items/addItems`, `PUT items/{id}`, `DELETE items/{id}` | items.manage |
 | | `GET items/search` | stock.restock or items.manage |
 | **Stock** | `GET stock/summary`, `stock/batches`, `stock/items/{id}/batches` | stock.restock, items.manage or reports.view |
+| | `GET stock/low` (products at or below their warning level) | stock.restock, items.manage or reports.view |
 | | `PUT stock/batches/{id}`, `POST stock/batches/{id}/write-off`, `POST stock/items/{id}/count` | stock.restock |
 | | `POST transactions/purchase` (restock) | stock.restock |
 | **Orders (customers)** | `POST orders` | Signed in (own email) |
@@ -272,6 +276,7 @@ All addresses start with `/api`. Answers are JSON. Errors: `{"status": 400, "err
 | | `POST admin/order-board/packages/{id}/take`, `/release`, `/packer` | orders.fulfil (giving to another packer: orders.assign) |
 | | `POST admin/order-board/packages/{id}/rider`, `/rider/remove` | orders.assign |
 | | `POST marketplace/packages/{id}/packed`, `/pickup`, `/deliver` | staff (orders.view / orders.fulfil) |
+| | `POST admin/order-board/packages/{id}/handover` `{code}` (pick up; staff may send no code) | orders.fulfil |
 | **Counter** | `POST orders/pos/sale`, `POST transactions/sale` | pos.use |
 | | `GET pos/shifts/current`, `POST pos/shifts/open`, `POST pos/shifts/{id}/close`, `GET pos/shifts`, `GET pos/shifts/{id}`, `GET pos/history` | pos.use (all drawers: pos.shifts.manage) |
 | | `GET customers/lookup?phone=` | pos.use or customers.view |
@@ -290,7 +295,7 @@ All addresses start with `/api`. Answers are JSON. Errors: `{"status": 400, "err
 | | `GET marketplace/my-applications`, `POST marketplace/apply/seller`, `POST marketplace/apply/rider` (multipart) | Signed in |
 | | `marketplace/admin/...`: overview, settings, partners, seller/rider status, commission, balances, ledger, documents, adjustments, payouts | marketplace.manage |
 | **Seller** | `GET seller/me`, `PUT seller/location` | seller.portal |
-| | `GET seller/packages`, `POST seller/packages/{id}/packed` | seller.orders |
+| | `GET seller/packages`, `POST seller/packages/{id}/packed`, `POST seller/packages/{id}/handover` `{code}` (own package, code required) | seller.orders |
 | | `GET/POST/PUT seller/items` | seller.products |
 | | `GET seller/ledger` | seller.earnings |
 | **Driver** | `GET rider/me`, `POST rider/licence` | rider.portal |
@@ -308,8 +313,9 @@ All addresses start with `/api`. Answers are JSON. Errors: `{"status": 400, "err
 | | `GET reviews/orders/{id}`, `POST reviews/orders/{id}/products/{itemId}`, `POST reviews/orders/{id}/service` | Signed in (owner, delivered only) |
 | | `GET reviews/admin`, `POST reviews/admin/{products\|service}/{id}/hidden`, `/reply` | reviews.manage |
 | **Reports** | `GET reports/sales`, `GET reports/sales/summary`, `GET admin/reports/sales-by-channel`, `GET stock/profit` | reports.view |
-| **People** | `admin/permissions`, `admin/roles[/{id}]`, `admin/users[/{id}/role, /active, /reset-password, /make-seller, /make-driver]`, `admin/audit` | users.manage |
-| **Website** | `GET site/about` | Everyone |
+| **People** | `admin/permissions`, `admin/roles[/{id}]`, `admin/users[/{id}, /{id}/role, /active, /reset-password, /make-seller, /make-driver]` (`PUT admin/users/{id}` {name, email, phone}: edit details), `admin/audit` | users.manage |
+| **Website** | `GET site/about`, `GET site/info` (contact details and links) | Everyone |
+| | `PUT site/admin/info` | site.manage |
 | | `GET/PUT site/admin/about`, `POST site/admin/team`, `PUT/DELETE site/admin/team/{id}`, `PUT site/admin/team/order` | site.manage |
 | **Files** | `GET /uploads/{name}` (outside `/api`) | Everyone (product and team photos) |
 
@@ -336,7 +342,22 @@ The exact check of each address is the `@PreAuthorize` on its controller method;
 - Delivery fee = base(size) + max(0, road km - included km) × per-km(size), rounded **up** to the next Nu. 5.
   Road km = haversine distance × 1.35. Driver pay = driver share % of the fee (whole Nu.). The package size is its
   biggest product's size.
-- A refund = what was paid for the item (unit price after discount × (1 + that sale's tax rate)), never above the sale.
+- A refund = what was paid for the item (unit price after discount × (1 + that sale's tax rate)), never above what
+  was paid for the items; an online order's delivery fee is never refunded. A seller's share of returned items
+  (subtotal - commission at the package's rate) is booked as a negative `RETURN` ledger entry, capped at what the
+  package earned.
+- Pick up myself: `OrderRequestDTO.fulfilment` = PICKUP needs no address; every package gets fee 0, rider pay 0,
+  `self_pickup` = true. `markPacked` notifies the customer (READY_TO_COLLECT, with SMS) instead of drivers; such
+  packages never reach `openJobs`, `accept`, `assignRider` or `pickUp`. `handOver` moves READY_FOR_PICKUP to
+  DELIVERED (code = the delivery code; staff may skip it), records `handed_over_by` and books earnings like a
+  delivery. Board stage COLLECT, target `app.orders.target.collect-minutes` (4320 = 3 days).
+- Editing a person (`AccountDetailsService`): name 1-100, email unique (case-insensitive), phone 8 digits and
+  unique. A new phone updates `customers.phone`; a new email updates the customer's own rows (orders,
+  payment_intents, notifications, product_reviews, order_feedback, terms_acceptances, customers) and the email in
+  pos_shifts, order_packages (packer, courier). Audit USER_DETAILS_CHANGED with old -> new; both addresses emailed.
+  Not on yourself; an admin or users.manage holder only by an admin.
+- Low stock: when a sale, write-off or count brings a product from above its `low_stock_threshold` to at or below
+  it, `stock.restock` staff (or the seller) get one LOW_STOCK notification.
 - Journal numbers: trimmed, upper case, 4 to 40 letters or digits, never accepted twice (checkout transfers and
   counter sales).
 
@@ -367,11 +388,12 @@ emails and texts are caught by the tests.
 
 | Test | What it proves |
 |---|---|
-| `MarketplaceFlowTest` | A full marketplace order with real numbers (commission, delivery, payouts, refusals) |
+| `MarketplaceFlowTest` | A full marketplace order with real numbers (commission, delivery, payouts, refusals), then returns of an online order (no delivery refund, the seller's share taken back) |
 | `PosAndAccessTest` | Role rules, cash drawer numbers, discounts, duplicate sales |
 | `SecurityHttpTest` | Real HTTP through the security chain; the sign-in cookie |
 | `GoLiveFeaturesTest` | Forgot password by link, notifications, test payments, photo checks |
 | `StockBatchTest` | FEFO, cost, expiry, counts, write-offs, profit |
+| `LowStockTest` | The low-stock warning: once per crossing, sold out, the Low stock list |
 | `BankPaymentTest` | Paying from a bank account: codes, limits, refusals, the bank never answering |
 | `JournalAndReceiptTest` | Journal numbers and receipts |
 | `RmaBankGatewayClientTest` | The RMA connector against a pretend gateway that checks signatures |
@@ -379,9 +401,9 @@ emails and texts are caught by the tests.
 | `FilesInDatabaseTest` | Photos and documents kept in the database |
 | `ReviewTest` | Only delivered products can be rated; moderation |
 | `PasswordResetCodeTest` | Forgot password by code (email and SMS), limits, one-time tickets |
-| `SiteAboutTest` | The About page: who may change it, texts, team, photos, order |
+| `SiteAboutTest` | The About page and the contact details and links: who may change them, texts, team, photos, order, link checks |
 
-47 tests, all passing (7 Oct 2026). The website: `npm run build` must pass with no errors.
+49 tests, all passing (7 Oct 2026). The website: `npm run build` must pass with no errors.
 
 ## 13. Building and deploying
 

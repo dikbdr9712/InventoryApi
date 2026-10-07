@@ -22,6 +22,7 @@ public class ItemMasterDTO {
     private Boolean discountAllowed;
     private BigDecimal maxDiscountPercent;
     private Integer currentStock;
+    private Integer lowStockThreshold; // "Warn me when stock reaches" (empty = no warning)
     private String availability;
     private String barcode;  
     private String supplierItemCode;  

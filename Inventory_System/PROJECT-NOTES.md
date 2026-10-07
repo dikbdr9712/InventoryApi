@@ -709,3 +709,48 @@ checklist, problems and fixes), 05-technical-reference (architecture, running lo
 database, API by area with permissions, business rules, scheduled jobs, tests, build), 06-glossary-and-faq.
 D:\Inventory\README.md is the server repository's front page; the website's README.md now describes the website
 and points to the docs. Keep the guides in step with the screens: change the document in the same commit.
+
+## 35. Remaining work done (7 Oct 2026; the RMA Payment Gateway is still to connect)
+- Returns of ONLINE orders work: the check now allows for the delivery fee (before, every online return was refused
+  with "the amounts do not add up"), and the delivery fee is never refunded (refunds are capped at what was paid for
+  the items). The order board has a Return button on delivered cards and in the side panel (sales.return).
+  A seller's share of returned items (subtotal - commission at the package's rate) comes off their earnings as a
+  RETURN ledger entry (never more than the package earned) and the seller is told. The returns' stock-ledger insert
+  no longer uses MySQL's UTC_TIMESTAMP (the time is passed from Java, UTC), so it also runs in the H2 tests.
+- Low-stock warnings: "Warn me when stock reaches" is now saved (V11 item_master.low_stock_threshold; 0 = when sold
+  out; it was ignored before, and 0 used to become 10). Going down to the level (sale, write-off, count) tells
+  stock.restock staff once (the seller, for a seller's product). Stock & expiry has a Low stock tab and card
+  (GET /api/stock/low).
+- Contact details and links are managed in the staff page Website (was "About page"): phone, more phone numbers
+  (Contact page), email, address, Facebook/Instagram/YouTube/TikTok (https only; empty = no icon). GET /api/site/info
+  (public), PUT /api/site/admin/info (site.manage), kept in site_texts (shop.*, link.*). The website reads them through
+  services/shop-details.ts (footer, Contact, About, Forgot password, receipts, invoices, credit notes, packing slip).
+- Unused test pictures removed: 25 from public/Images (kept: logo-112, default, the two team photos, the original
+  logo files) and the server's resources/static/Images (26).
+- Tests: MarketplaceFlowTest (+ online returns), LowStockTest (new), SiteAboutTest (+ contact details). 49 in all.
+- Still to do by the owner (no code): email account on Render (Brevo/Mailjet), SMS account if wanted, publish the
+  agreements' new versions (new name, new email) in Marketplace > Agreements after a legal check, RMA merchant
+  registration.
+
+## 36. Pick up myself, and editing a person's email or phone (7 Oct 2026)
+- Checkout asks "How do you want to get it?": Deliver to my door, or Pick up myself (free). Pickup needs no address,
+  ignores "too far", and the order request sends fulfilment=PICKUP. V12 adds orders.fulfilment (DELIVERY default),
+  order_packages.self_pickup and handed_over_by.
+- A pickup package: fee 0, rider pay 0, no drop point. Packed -> the customer is told READY_TO_COLLECT (with SMS),
+  with where to collect and the code (the delivery code doubles as the collection code). Drivers never see it; staff
+  cannot give it to a driver or "We deliver it". Handed over: POST /api/admin/order-board/packages/{id}/handover
+  (orders.fulfil, code optional for staff: "No code: I checked who the customer is") or
+  POST /api/seller/packages/{id}/handover (the seller's own package, code required). Earnings booked like a delivery
+  (PackageService.finishHandedOver, shared with deliver).
+- Order board: stage COLLECT "Waiting for the customer to collect" (in the Packed pipeline step, "N to collect"),
+  Pick up badge, Call customer / Call seller / Handed over, "Collected" and "handed over by" in the panel and history.
+  Late after app.orders.target.collect-minutes=4320 (3 days).
+- Customer: order page shows "Collect from" (address, Call, Map), the Collection code, steps Packed > Collected;
+  My orders and the tracker show Placed > Confirmed > Collected. Receipt: "Collected by the customer", "Pick up
+  myself: Free". Seller hub: "Customer collects" filter and overview note, "Packed, ready to collect",
+  "Customer collected it" (code prompt).
+- People & access: Edit details (name, email, phone) on each person, PUT /api/admin/users/{id}
+  (AccountDetailsService). Unique email/phone, moves the customer's own rows to the new email, updates
+  customers.phone, audit USER_DETAILS_CHANGED (old -> new), emails both addresses, signs them out on a new email.
+  Not on yourself; admins and people managers only by an admin.
+- Tests: PickupFlowTest (own H2 database), AccountDetailsTest. 51 in all. V12 checked on a scratch MySQL database.

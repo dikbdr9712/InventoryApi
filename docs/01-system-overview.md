@@ -80,7 +80,8 @@ flowchart LR
 **For the admin**
 - People and roles with tick-box permissions, temporary passwords, an activity log.
 - The marketplace: applications, commission, delivery prices, payouts, agreements.
-- The About page: its texts and the team, with photos.
+- The website: the About page (its texts and the team, with photos) and the shop's contact details and links
+  (phone numbers, email, address, Facebook, Instagram, YouTube, TikTok), shown everywhere and on receipts.
 
 ## 1.5 How an online order travels
 
@@ -110,6 +111,12 @@ flowchart TD
 If anything takes too long (payment not checked, not packed, not collected, not delivered), the order board marks it
 **late** so staff can act.
 
+**Pick up myself.** At checkout the customer can choose **Pick up myself** instead of **Deliver to my door**. There is
+no delivery fee and no driver. Each package waits where it is packed: our shop for our own products, the seller's
+pickup point for a seller's products. When a package is packed, the customer is told it is ready, with the address and
+a 4-digit **collection code**. The customer comes, shows the code, and the seller (or our staff) taps **Handed over**.
+The seller's earnings are recorded as for a delivery.
+
 ## 1.6 How a counter sale works
 
 1. The cashier opens their **cash drawer** with the starting cash (the float).
@@ -131,8 +138,9 @@ If anything takes too long (payment not checked, not packed, not collected, not 
   Seller earnings = sale - commission. Changes only apply to new orders.
 - **Payouts**: the admin pays sellers and drivers by bank transfer and records it with the journal number.
   Nobody can be paid more than they are owed.
-- **Refunds** (returns at the counter or by staff): the customer gets back exactly what they paid for that item,
-  within 7 days of the sale.
+- **Refunds** (returns of counter sales and online orders, taken by staff): the customer gets back exactly what they
+  paid for that item, within 7 days of the sale. The delivery fee is not refunded (the delivery took place). For a
+  seller's product, the seller's share of it is taken back from their earnings automatically.
 - **Journal numbers** (the bank's reference of a transfer) are never accepted twice, so one transfer cannot pay two sales.
 
 ## 1.8 How stock works
@@ -141,6 +149,8 @@ If anything takes too long (payment not checked, not packed, not collected, not 
 - Sales take from the batch that **expires first**. Expired stock is taken off sale every night and staff are told.
 - Every Monday morning staff hear what expires within 30 days.
 - Staff can write stock off (broken, lost) with a reason, or count a product and correct it.
+- Each product can have a **low-stock warning level**. When stock goes down to it, the people who restock are told
+  (the seller, for a seller's product), and the product appears under **Low stock**.
 - Two tills, or a till and the website, can never sell the last item twice.
 - **Profit** on our own products uses the real cost of the batch each item came from.
 
@@ -178,4 +188,3 @@ What the free plans mean in practice:
 | Email | Built. Needs an email service account on the server (Brevo or Mailjet). |
 | Text messages (SMS) | Built. Needs a paid SMS account (a Bhutanese operator's bulk SMS, or Twilio). |
 | Agreements | The Terms, Seller Agreement and Driver Agreement are templates. Have them checked by a legal adviser. |
-| Returns of sellers' products | A return does not yet take the money back from the seller automatically. The admin records an adjustment. |

@@ -56,6 +56,29 @@ public class SiteService {
                     + "country, and every customer can shop with confidence, wherever they live.",
             NUMBERS, "true");
 
+    /**
+     * The shop's contact details and links, shown in the footer, on Contact, About and Forgot password, and printed
+     * on receipts, invoices and credit notes. A stored value wins even when empty (an empty link = no icon).
+     */
+    public static final String PHONE = "shop.phone";
+    /** More numbers for the Contact page, comma-separated (optional). */
+    public static final String OTHER_PHONES = "shop.phones";
+    public static final String EMAIL = "shop.email";
+    public static final String ADDRESS = "shop.address";
+    public static final String FACEBOOK = "link.facebook";
+    public static final String INSTAGRAM = "link.instagram";
+    public static final String YOUTUBE = "link.youtube";
+    public static final String TIKTOK = "link.tiktok";
+    public static final Map<String, String> SHOP_DEFAULTS = Map.of(
+            PHONE, "77269712",
+            OTHER_PHONES, "17941806, 77803506",
+            EMAIL, "dpdrukbazaars@gmail.com",
+            ADDRESS, "Thimphu, Bhutan",
+            FACEBOOK, "https://www.facebook.com/pharmith.lepcha.2025",
+            INSTAGRAM, "",
+            YOUTUBE, "",
+            TIKTOK, "");
+
     private static final int MAX_INTRO = 600;
     private static final int MAX_TEXT = 800;
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -93,6 +116,11 @@ public class SiteService {
     }
 
     public record Texts(String intro, String mission, String vision, Boolean showNumbers) {
+    }
+
+    /** The shop's contact details and its pages elsewhere (empty link = not shown). */
+    public record ShopDetails(String phone, String otherPhones, String email, String address, String facebook,
+                              String instagram, String youtube, String tiktok) {
     }
 
     /** For the staff page: every person (hidden too), when and by whom the texts last changed, and the original wording. */
@@ -222,6 +250,98 @@ public class SiteService {
             team.save(m);
         }
         return team.findAllByOrderBySortOrderAscIdAsc().stream().map(SiteService::view).toList();
+    }
+
+    // ================= Contact details and links =================
+
+    @Transactional(readOnly = true)
+    public ShopDetails shopDetails() {
+        Map<String, String> v = new LinkedHashMap<>(SHOP_DEFAULTS);
+        for (SiteText s : texts.findAllById(SHOP_DEFAULTS.keySet())) {
+            v.put(s.getTextKey(), s.getTextValue() == null ? "" : s.getTextValue());
+        }
+        return new ShopDetails(v.get(PHONE), v.get(OTHER_PHONES), v.get(EMAIL), v.get(ADDRESS), v.get(FACEBOOK), v.get(INSTAGRAM),
+                v.get(YOUTUBE), v.get(TIKTOK));
+    }
+
+    @Transactional
+    public ShopDetails saveShopDetails(ShopDetails in) {
+        if (in == null) {
+            throw new IllegalArgumentException("Fill in the shop's details.");
+        }
+        String phone = clean(in.phone());
+        if (!phone.matches("\\+?[0-9 ]{7,20}") || phone.replaceAll("\\D", "").length() < 7) {
+            throw new IllegalArgumentException("Enter the shop's phone number (digits only, for example 77269712).");
+        }
+        List<String> others = new ArrayList<>();
+        for (String n : clean(in.otherPhones()).split(",")) {
+            String number = n.trim();
+            if (number.isEmpty()) {
+                continue;
+            }
+            if (!number.matches("\\+?[0-9 ]{7,20}") || number.replaceAll("\\D", "").length() < 7) {
+                throw new IllegalArgumentException("\"" + number + "\" is not a phone number. Separate more numbers with commas.");
+            }
+            others.add(number);
+        }
+        if (others.size() > 5) {
+            throw new IllegalArgumentException("At most 5 more phone numbers.");
+        }
+        String email = clean(in.email());
+        if (email.length() > 120 || !email.matches("^\\S+@\\S+\\.\\S+$")) {
+            throw new IllegalArgumentException("Enter the shop's email address.");
+        }
+        String address = required(in.address(), "the address", 200);
+        Map<String, String> next = new LinkedHashMap<>();
+        next.put(PHONE, phone);
+        next.put(OTHER_PHONES, String.join(", ", others));
+        next.put(EMAIL, email);
+        next.put(ADDRESS, address);
+        next.put(FACEBOOK, link(in.facebook(), "Facebook"));
+        next.put(INSTAGRAM, link(in.instagram(), "Instagram"));
+        next.put(YOUTUBE, link(in.youtube(), "YouTube"));
+        next.put(TIKTOK, link(in.tiktok(), "TikTok"));
+
+        ShopDetails before = shopDetails();
+        Map<String, String> old = Map.of(PHONE, before.phone(), OTHER_PHONES, before.otherPhones(), EMAIL, before.email(), ADDRESS, before.address(),
+                FACEBOOK, before.facebook(), INSTAGRAM, before.instagram(), YOUTUBE, before.youtube(), TIKTOK, before.tiktok());
+        Instant now = Instant.now();
+        List<String> changed = new ArrayList<>();
+        for (Map.Entry<String, String> e : next.entrySet()) {
+            if (e.getValue().equals(old.get(e.getKey()))) {
+                continue;
+            }
+            SiteText row = texts.findById(e.getKey()).orElseGet(() -> {
+                SiteText s = new SiteText();
+                s.setTextKey(e.getKey());
+                return s;
+            });
+            row.setTextValue(e.getValue());
+            row.setUpdatedBy(CurrentUser.email());
+            row.setUpdatedAt(now);
+            texts.save(row);
+            changed.add(e.getKey().substring(e.getKey().indexOf('.') + 1));
+        }
+        if (!changed.isEmpty()) {
+            audit.record("SITE_DETAILS_CHANGED", "Contact details and links", String.join(", ", changed));
+        }
+        return shopDetails();
+    }
+
+    /** Empty, or a full https address. */
+    private static String link(String value, String what) {
+        String v = clean(value);
+        if (v.isEmpty()) {
+            return "";
+        }
+        if (v.length() > 300 || !v.matches("https://[^\\s<>\"]+")) {
+            throw new IllegalArgumentException("The " + what + " link must be a full address starting with https://, or empty.");
+        }
+        return v;
+    }
+
+    private static String clean(String value) {
+        return value == null ? "" : value.trim();
     }
 
     // ================= Helpers =================

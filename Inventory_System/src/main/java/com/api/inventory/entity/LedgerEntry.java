@@ -15,6 +15,7 @@ import java.time.Instant;
  *   DELIVERY   rider earned this for delivering a package
  *   PAYOUT     we paid them (negative)
  *   ADJUSTMENT a correction by an admin (either sign), always with a note
+ *   RETURN     a customer returned a seller's items: the seller's share of them comes back (negative)
  */
 @Entity
 @Table(name = "earnings_ledger", indexes = {
@@ -31,6 +32,7 @@ public class LedgerEntry {
     public static final String DELIVERY = "DELIVERY";
     public static final String PAYOUT = "PAYOUT";
     public static final String ADJUSTMENT = "ADJUSTMENT";
+    public static final String RETURN = "RETURN";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

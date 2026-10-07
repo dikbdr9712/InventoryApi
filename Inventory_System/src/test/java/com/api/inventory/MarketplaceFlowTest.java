@@ -15,6 +15,8 @@ import com.api.inventory.service.OrderService;
 import com.api.inventory.service.PackageService;
 import com.api.inventory.service.SellerItemService;
 import com.api.inventory.service.SellerItemService.SellerItemForm;
+import com.api.inventory.service.SalesReturnService;
+import com.api.inventory.dto.ReturnDTO;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,6 +63,8 @@ class MarketplaceFlowTest {
     @Autowired RiderProfileRepository riderRepo;
     @Autowired OrderPackageRepository packageRepo;
     @Autowired DeliveryPricingService pricing;
+    @Autowired SalesReturnService returns;
+    @Autowired LedgerEntryRepository ledgerRepo;
 
     @AfterEach
     void signOut() {
@@ -262,6 +266,33 @@ class MarketplaceFlowTest {
         assertMoney("731.22", sellerMoney.totalEarned());
         assertMoney("700.00", sellerMoney.totalPaidOut());
         assertEquals(1, sellerMoney.deliveredCount());
+        assertMoney("0.00", marketplace.earnings("RIDER", riderId, packages.rawForRider(riderId)).balanceOwed());
+
+        // ---- The customer returns 1 honey: refunded what they paid for it; the delivery fee stays (it was delivered).
+        //      The seller's share of it comes off their earnings: 249.99 - 2.5% (6.25) = 243.74.
+        ReturnDTO.ReturnableOrder canReturn = returns.returnable(order.getOrderId());
+        assertTrue(canReturn.eligible(), "an online order with a delivery fee can be returned: " + canReturn.message());
+        Long honeyLine = canReturn.lines().stream().filter(l -> l.itemId().equals(honeyId)).findFirst().orElseThrow().orderItemId();
+        Long soapLine = canReturn.lines().stream().filter(l -> l.itemId().equals(soapId)).findFirst().orElseThrow().orderItemId();
+        ReturnDTO.ReturnView first = returns.createReturn(order.getOrderId(), new ReturnDTO.ReturnRequest("CHANGED_MIND", null, "ORIGINAL",
+                List.of(new ReturnDTO.ReturnLineRequest(honeyLine, 1, true))), admin.getEmail());
+        assertMoney("249.99", first.refundAmount());
+        assertEquals(8, stock.findByItemId(honeyId).orElseThrow().getCurrentQuantity(), "back on the shelf");
+        assertMoney("-243.74", ledgerRepo.sumOf("SELLER", sellerId, LedgerEntry.RETURN));
+        assertMoney("-212.52", marketplace.earnings("SELLER", sellerId, packages.rawForSeller(sellerId)).balanceOwed()); // 31.22 - 243.74
+
+        // ---- Everything else comes back too: refunds reach exactly what was paid for the items (1004.97 - 135.00 delivery)
+        ReturnDTO.ReturnView rest = returns.createReturn(order.getOrderId(), new ReturnDTO.ReturnRequest("DAMAGED", null, "CASH",
+                List.of(new ReturnDTO.ReturnLineRequest(honeyLine, 2, null), new ReturnDTO.ReturnLineRequest(soapLine, 1, null))), admin.getEmail());
+        assertMoney("619.98", rest.refundAmount());
+        assertEquals(8, stock.findByItemId(honeyId).orElseThrow().getCurrentQuantity(), "damaged items do not go back on sale");
+        // the seller gives back exactly what the package earned (243.74 + 487.48 = 731.22), never more
+        assertMoney("-731.22", ledgerRepo.sumOf("SELLER", sellerId, LedgerEntry.RETURN));
+        assertMoney("-700.00", marketplace.earnings("SELLER", sellerId, packages.rawForSeller(sellerId)).balanceOwed());
+        assertThrows(SalesReturnService.ReturnException.class, () -> returns.createReturn(order.getOrderId(),
+                new ReturnDTO.ReturnRequest("OTHER", null, "CASH", List.of(new ReturnDTO.ReturnLineRequest(soapLine, 1, null))),
+                admin.getEmail()), "nothing is left to return");
+        // the rider keeps their pay: the delivery happened
         assertMoney("0.00", marketplace.earnings("RIDER", riderId, packages.rawForRider(riderId)).balanceOwed());
     }
 

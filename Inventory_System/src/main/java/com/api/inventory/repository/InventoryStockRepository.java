@@ -14,6 +14,9 @@ import java.util.Optional;
 @Repository
 public interface InventoryStockRepository extends JpaRepository<InventoryStock, Long> {
     Optional<InventoryStock> findByItemId(Long itemId);
+
+    @Query("select s.currentQuantity from InventoryStock s where s.itemId = :itemId")
+    Integer quantityNow(@Param("itemId") Long itemId);
     List<InventoryStock> findByItemIdIn(List<Long> itemIds);
 
     @Modifying

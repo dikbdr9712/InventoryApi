@@ -60,8 +60,10 @@ public class OrderResponseDTO {
 	private String note;
 	private String paymentMethod;
 	private BigDecimal deliveryFee;
+	private String fulfilment; // DELIVERY or PICKUP
 
 	public String getCustomerName() { return customerName; }
+	public String getFulfilment() { return fulfilment; }
 	public String getCustomerPhone() { return customerPhone; }
 	public String getAddress() { return address; }
 	public String getNote() { return note; }
@@ -85,6 +87,7 @@ public class OrderResponseDTO {
 	    dto.note = order.getNote();
 	    dto.paymentMethod = order.getPaymentMethod();
 	    dto.deliveryFee = order.getDeliveryFee();
+	    dto.fulfilment = order.getFulfilment();
 	    return dto;
 	}
 

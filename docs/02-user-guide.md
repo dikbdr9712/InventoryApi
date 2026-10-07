@@ -65,17 +65,21 @@ give you a temporary password; sign in with it and choose your own in **My profi
 
 1. Tap **Add to cart** on a product. The cart icon (top right) shows how many items you have.
 2. Open the cart. Change quantities or remove items.
-3. Fill in **Delivery details**:
+3. Under **How do you want to get it?** choose **Deliver to my door** (a driver brings it, with a delivery fee) or
+   **Pick up myself** (free; you collect it, see A8). For pick up, the cart lists where each part of your order is
+   collected, and no address is needed.
+4. Fill in **Your details** (for delivery, also the location and the address):
    - your name and phone number (8 digits),
    - **Delivery location**: tap **Use my current location**, or choose your area from the list. This gives the
      exact delivery fee. Without it the distance is estimated.
    - the address (house, building, a landmark).
-4. Check the **Order summary**: items, delivery fee (one per package; each seller sends their own package), total.
-5. Tap **Continue to payment**. You must be signed in; if you are not, sign in and you come back here.
-6. On the payment page, **Pay with your bank account** is chosen. Tap **Place order and pay**.
+5. Check the **Order summary**: items, delivery fee (one per package; each seller sends their own package) or
+   **Pick up myself: Free**, total.
+6. Tap **Continue to payment**. You must be signed in; if you are not, sign in and you come back here.
+7. On the payment page, **Pay with your bank account** is chosen. Tap **Place order and pay**.
 
 The delivery fee depends on the size of the products (small, medium, large, bulky) and the distance. If the address
-is too far away, the order cannot be placed and a message says so.
+is too far away, the order cannot be delivered and a message says so; you can still choose **Pick up myself**.
 
 ### A6. Pay from your bank account
 
@@ -107,7 +111,8 @@ Good to know:
 - The **bell** (top right) shows notifications: paid, packed, driver on the way, delivered.
 - **My orders** (menu or your initials) lists your orders. Tap one to open it.
 - The order page shows:
-  - the steps: **Placed**, **Confirmed**, **Shipped**, **Delivered**;
+  - the steps: **Placed**, **Confirmed**, **Shipped**, **Delivered** (for pick up: **Placed**, **Confirmed**,
+    **Collected**);
   - each **package** (one per seller), its status and the driver;
   - your **Delivery code** (4 digits) while a package is on its way;
   - your delivery details, the items and the total;
@@ -118,6 +123,23 @@ Good to know:
 When the driver arrives, check the package and tell them your **Delivery code** from the order page (it is also sent
 by SMS when text messages are on). The driver types it in; that proves the package reached you. Never give the code
 before you have the package.
+
+**If you chose Pick up myself**
+
+```mermaid
+flowchart LR
+    A["Order with Pick up myself<br/>(no delivery fee)"] --> B["Pay"] --> C["The shop or seller packs it"]
+    C --> D["You are told: ready to collect<br/>(where, and your collection code)"]
+    D --> E["Go there, show the code"] --> F["Handed over: Collected"]
+```
+
+1. When a package is packed you get a notification (and an SMS when text messages are on): **Ready to collect**.
+2. Your order page shows, for each package, **Collect from** with the address, a **Call** button and a **Map** link,
+   and your 4-digit **Collection code**. An order with products from several sellers is collected from each of them.
+3. Go there, check your products, and show the code. The seller or our staff hand it over and the package shows
+   **Collected**.
+
+Never give the code to anyone before you have your products.
 
 ### A9. Cancel an order
 
@@ -186,8 +208,8 @@ After approval, **My shop** appears in the staff bar. It has these tabs:
 
 | Tab | What you do there |
 |---|---|
-| **Overview** | Packages waiting to be packed and your earnings at a glance. Set your **Pickup point** in My shop so the delivery fee is exact. |
-| **Packages** | Paid orders for your products. Pack each one and tap **Packed**. |
+| **Overview** | Packages waiting to be packed (and orders waiting for the customer to collect) and your earnings at a glance. Set your **Pickup point** in My shop so the delivery fee is exact. |
+| **Packages** | Paid orders for your products. Pack each one and tap **Packed**. **Customer collects** lists packed orders the customer picks up from you. |
 | **Products** | Add and edit your products: name, price, photo, stock, the delivery size, switch a product off. |
 | **Money** | What you earned per delivered package, payouts received, and what you are still owed. |
 
@@ -199,9 +221,16 @@ After approval, **My shop** appears in the staff bar. It has these tabs:
 
 You only see orders after they are paid. You never see other sellers' orders.
 
+**When the customer picks it up themselves** (the package says **Customer collects**):
+
+1. Pack it and tap **Packed, ready to collect**. The customer is told to come, with your pickup address.
+2. When they come, ask for the 4-digit **collection code** on their order page. Tap **Customer collected it**, type
+   the code, tap **Handed over**. A wrong code is refused: do not give the package.
+3. Your earning is recorded at once, as for a delivery.
+
 ### B4. Get paid
 
-- When a package is delivered, your earning is recorded: the sale minus the commission.
+- When a package is delivered (or collected by the customer), your earning is recorded: the sale minus the commission.
 - The admin pays you by bank transfer and records it with the journal number. You see it in **Money**.
 
 ### B5. New agreement versions

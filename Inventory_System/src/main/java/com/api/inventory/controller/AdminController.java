@@ -57,6 +57,12 @@ public class AdminController {
     }
 
     private com.api.inventory.service.CustomerService customerService;
+    private com.api.inventory.service.AccountDetailsService accountDetails;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void setAccountDetails(com.api.inventory.service.AccountDetailsService accountDetails) {
+        this.accountDetails = accountDetails;
+    }
 
     public AdminController(UserRepository users, RoleRepository roles, SellerProfileRepository sellers, RiderProfileRepository riders,
                            AccessControlService access, AuditService audit, PasswordEncoder passwordEncoder) {
@@ -325,6 +331,23 @@ public class AdminController {
         user.setActive(active);
         users.save(user);
         audit.record(active ? "USER_REACTIVATED" : "USER_DEACTIVATED", who(user), null);
+        return view(user);
+    }
+
+    /**
+     * Correct a person's name, sign-in email or phone. A new email moves their orders, notifications, reviews and
+     * agreements with it and signs them out everywhere (see AccountDetailsService).
+     */
+    @PutMapping("/users/{userId}")
+    @Transactional
+    public UserView changeDetails(@PathVariable Long userId, @RequestBody com.api.inventory.service.AccountDetailsService.Change request) {
+        User user = users.findById(userId).orElseThrow(() -> new IllegalStateException("User not found."));
+        requireNotMe(user, "change your own sign-in details here (ask another admin)");
+        if (user.getRole() != null && (Permissions.ADMIN.equalsIgnoreCase(user.getRole().getName())
+                || access.permissionsOf(user.getRole().getName()).contains("users.manage"))) {
+            requireAdminFor(Set.of("users.manage"));
+        }
+        accountDetails.change(user, request);
         return view(user);
     }
 

@@ -29,7 +29,7 @@
    - **People & access**: add your staff and give them roles.
    - **Marketplace > Agreements**: have the Terms, Seller Agreement and Driver Agreement checked by a legal adviser
      and publish your own versions.
-   - **Website > About page**: your texts and your team.
+   - **Website** (staff bar): your contact details and links, the About page texts and your team.
    - **Email** (and SMS if you want it), see section 7.
 
 ## 2. Roles and permissions
@@ -83,13 +83,18 @@ Rules the system keeps, whatever you tick:
 - **Change role**: choose another role. Choosing **Seller** or **Delivery driver** approves their application if they
   sent one; otherwise you fill in their shop (or vehicle and licence), CID and bank details yourself.
   Leaving the seller or driver role pauses that account.
+- **Edit details**: change a person's name, sign-in **email** or **phone number** (8 digits). An email or phone
+  already used by another account is refused. A new email signs them out; they sign in with the new email and the
+  same password. Their orders, payments, reviews, notifications and agreements move with them, and both the old and
+  the new address get an email about it. The Activity list keeps the old and the new values. You cannot edit your
+  own account here (ask another admin), and only an admin can edit another admin or a person who manages people.
 - **Switch off / on**: a switched-off account is signed out at once and cannot sign in.
 - **Reset password**: gives a one-time temporary password to pass on. The person chooses their own in My profile.
   (Customers can also reset it themselves with a code, see the User guide.)
 
 **Roles & permissions**: tick boxes per role, new roles, delete unused roles.
 
-**Activity**: who did what and when: role changes, accounts switched off, password resets, approvals, payouts,
+**Activity**: who did what and when: role changes, changed emails or phones, accounts switched off, password resets, approvals, payouts,
 website changes, cash drawers, and more.
 
 ## 4. The marketplace
@@ -124,11 +129,13 @@ their card. A change applies to new orders only.
 Road distance is worked out from the straight line between the two points × 1.35; no map service is needed.
 The fee is rounded up to the next Nu. 5.
 
-### Payouts and adjustments
+### Payouts, adjustments and returns
 
 - The **Payouts** tab lists sellers and drivers you owe money to.
 - Pay them by bank transfer, then record the payout with the **journal number**. You cannot pay more than is owed.
-- **Adjust**: take money back (for example a refund for a faulty product) or add money, always with a reason.
+- **Adjust**: take money back or add money for any other reason, always with a reason.
+- **Returns**: when staff take back a seller's product, the seller's share of it (the price minus the commission) is
+  taken off their earnings automatically, never more than that package earned. It shows as "Return" in their book.
 
 ### Agreements
 
@@ -140,7 +147,12 @@ The fee is rounded up to the next Nu. 5.
 
 ## 5. The website pages
 
-**Website > About page** (Edit the website pages):
+**Website** in the staff bar (Edit the website pages):
+
+- **Contact details and links**: the phone, more phone numbers (Contact page only), email and address, and the shop's
+  pages on Facebook, Instagram, YouTube and TikTok. They show in the footer, on the Contact, About and Forgot password
+  pages, and are printed on receipts, invoices and credit notes. A link left empty has no icon. Links must start with
+  `https://`.
 
 - **Texts**: the introduction, our mission and our vision, with **Use the original wording**; and **Show the live
   numbers** (products, local sellers, orders delivered, average rating; a 0 is never shown).
@@ -264,6 +276,8 @@ The full list, with the values used on a developer's computer, is in the [Techni
 | Photos disappeared after a restart | Files were kept on Render's disk | Set `APP_FILES_STORE=database` and upload the photos again. |
 | The server does not start after a change | Often: an old file in `db/migration` was edited | Never change V1 to V10 once applied; put changes in a new file (V11, ...). Restore the old file from Git. |
 | A staff member cannot see a page | Their role lacks the permission | People & access > Roles & permissions. |
+| The footer shows a wrong phone number or link | Contact details changed | **Website > Contact details and links**. |
+| Nobody was warned about low stock | No warning level on the product | Edit the product: **Warn me when stock reaches**. |
 | A seller sees no orders | Only paid orders appear; the application must be approved and the agreement accepted | Check their status in Marketplace. |
 | A driver sees no jobs | Their vehicle is too small for the packages, their licence expired, or they already have 5 jobs | Check their card in Marketplace; they send a renewed licence from My deliveries. |
 | Nobody can sign in as admin | The only admin was locked out | Another admin resets the password; or run `database/02-first-admin.sql` for a signed-up account. |

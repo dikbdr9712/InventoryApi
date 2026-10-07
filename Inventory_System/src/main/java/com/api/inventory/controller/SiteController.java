@@ -12,6 +12,8 @@ import java.util.Map;
 /**
  * The website's own pages that staff can change.
  *   GET  /api/site/about                         everyone: the About page (texts, live numbers, the team)
+ *   GET  /api/site/info                          everyone: the shop's phone, email, address and links
+ *   PUT  /api/site/admin/info                    site.manage: change them
  *   site.manage:
  *   GET  /api/site/admin/about                   texts, every team member (hidden too), the original wording
  *   PUT  /api/site/admin/about                   {intro, mission, vision, showNumbers}
@@ -33,6 +35,18 @@ public class SiteController {
     @GetMapping("/about")
     public SiteService.About about() {
         return site.about();
+    }
+
+    /** Everyone: the shop's phone, email, address and links (footer, Contact, receipts). */
+    @GetMapping("/info")
+    public SiteService.ShopDetails info() {
+        return site.shopDetails();
+    }
+
+    @PutMapping("/admin/info")
+    @PreAuthorize("hasAuthority('site.manage')")
+    public SiteService.ShopDetails saveInfo(@RequestBody SiteService.ShopDetails details) {
+        return site.saveShopDetails(details);
     }
 
     @GetMapping("/admin/about")

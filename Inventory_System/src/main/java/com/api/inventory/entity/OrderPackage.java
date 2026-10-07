@@ -124,6 +124,14 @@ public class OrderPackage {
     @Column(length = 120)
     private String courierEmail;
 
+    /** The customer collects it where it is packed (our shop or the seller): never on the drivers' job board. */
+    @Column(nullable = false)
+    private boolean selfPickup;
+
+    /** Who gave a collected package to the customer (staff or the seller). Email. */
+    @Column(length = 255)
+    private String handedOverBy;
+
     /** Who did the last step (email), for the record. */
     private String updatedBy;
 

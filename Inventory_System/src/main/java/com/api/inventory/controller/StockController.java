@@ -37,6 +37,13 @@ public class StockController {
     public record Count(Integer quantity, BigDecimal unitCost, String note) {
     }
 
+    /** Products at or below their "warn me when stock reaches" level. */
+    @PreAuthorize("hasAnyAuthority('stock.restock', 'items.manage', 'reports.view')")
+    @GetMapping("/low")
+    public java.util.List<StockService.LowStock> lowStock() {
+        return stock.lowStock();
+    }
+
     @PreAuthorize("hasAnyAuthority('stock.restock', 'items.manage', 'reports.view')")
     @GetMapping("/summary")
     public Summary summary(@RequestParam(defaultValue = "60") int days) {

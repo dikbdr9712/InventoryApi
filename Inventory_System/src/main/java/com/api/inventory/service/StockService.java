@@ -65,6 +65,12 @@ public class StockService implements ApplicationRunner {
     private final EntityManager em;
     private final ZoneId zone;
     private org.springframework.transaction.support.TransactionTemplate tx;
+    private com.api.inventory.repository.SellerProfileRepository sellers;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void setSellers(com.api.inventory.repository.SellerProfileRepository sellers) {
+        this.sellers = sellers;
+    }
 
     @org.springframework.beans.factory.annotation.Autowired
     void setTransactions(org.springframework.transaction.PlatformTransactionManager transactions) {
@@ -194,6 +200,7 @@ public class StockService implements ApplicationRunner {
             orderItems.save(line);
         }
         stock.refreshStatus(itemId, LocalDateTime.now());
+        warnIfLow(itemId, quantity);
         return cost;
     }
 
@@ -527,6 +534,53 @@ public class StockService implements ApplicationRunner {
             stock.setQuantity(itemId, Math.max(0, now - quantity));
         }
         stock.refreshStatus(itemId, LocalDateTime.now());
+        warnIfLow(itemId, quantity);
+    }
+
+    /**
+     * The stock just went down by "taken". When that brings it to the product's warning level (or below) from above
+     * it, the people who restock are told, once; for a seller's product, the seller. Sold out says so.
+     */
+    private void warnIfLow(Long itemId, int taken) {
+        ItemMaster item = items.findById(itemId).orElse(null);
+        if (item == null || item.getLowStockThreshold() == null) {
+            return;
+        }
+        Integer now = stock.quantityNow(itemId);
+        int after = now == null ? 0 : Math.max(0, now);
+        int level = item.getLowStockThreshold();
+        if (after > level || after + taken <= level) {
+            return; // still above the level, or it was already low before
+        }
+        String name = item.getItemName();
+        NotificationService.Note note = after == 0
+                ? new NotificationService.Note("LOW_STOCK", name + " is sold out", "No " + name + " left. Restock it soon.",
+                        item.getSellerId() == null ? "/restock" : "/seller")
+                : new NotificationService.Note("LOW_STOCK", "Low stock: " + name,
+                        "Only " + after + " left (you asked to be warned at " + level + ").",
+                        item.getSellerId() == null ? "/restock" : "/seller");
+        if (item.getSellerId() == null) {
+            notify.withPermission("stock.restock", note, false);
+        } else if (sellers != null) {
+            sellers.findById(item.getSellerId()).ifPresent(s -> notify.user(s.getUser().getEmail(), note, false));
+        }
+    }
+
+    public record LowStock(Long itemId, String itemName, String sku, int quantity, int warnAt, Long sellerId) {
+    }
+
+    /** Products at or below their warning level, the emptiest first. */
+    @Transactional(readOnly = true)
+    public List<LowStock> lowStock() {
+        Map<Long, Integer> quantities = new HashMap<>();
+        stock.findAll().forEach(s -> quantities.put(s.getItemId(), s.getCurrentQuantity() == null ? 0 : s.getCurrentQuantity()));
+        return items.findAll().stream()
+                .filter(i -> i.getLowStockThreshold() != null && !Boolean.FALSE.equals(i.getIsActive()))
+                .filter(i -> quantities.getOrDefault(i.getItemId(), 0) <= i.getLowStockThreshold())
+                .map(i -> new LowStock(i.getItemId(), i.getItemName(), i.getSku(), quantities.getOrDefault(i.getItemId(), 0),
+                        i.getLowStockThreshold(), i.getSellerId()))
+                .sorted(java.util.Comparator.comparingInt(LowStock::quantity).thenComparing(LowStock::itemName))
+                .toList();
     }
 
     private void logMovement(StockBatch b, String type, int quantity, String note) {

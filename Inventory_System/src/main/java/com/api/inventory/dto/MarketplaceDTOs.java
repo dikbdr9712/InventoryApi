@@ -88,7 +88,8 @@ public final class MarketplaceDTOs {
                               String deliverySize, BigDecimal distanceKm, boolean distanceEstimated,
                               Double pickupLatitude, Double pickupLongitude, Double dropLatitude, Double dropLongitude,
                               String deliveryCode, int itemCount, List<PackageLine> items,
-                              Instant createdAt, Instant packedAt, Instant assignedAt, Instant pickedUpAt, Instant deliveredAt) {
+                              Instant createdAt, Instant packedAt, Instant assignedAt, Instant pickedUpAt, Instant deliveredAt,
+                              boolean selfPickup, String handedOverBy) {
     }
 
     public record DeliverRequest(String code) {

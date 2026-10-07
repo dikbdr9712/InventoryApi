@@ -124,6 +124,39 @@ class SiteAboutTest {
         assertEquals(List.of("Sonam Wangmo"), names);
     }
 
+    @Test
+    void theShopsContactDetailsAndLinksAreManagedToo() throws Exception {
+        MockMvc http = MockMvcBuilders.webAppContextSetup(context).addFilters(securityChain).build();
+        MockHttpSession admin = signIn(http, user("owner2@site.bt", "ADMIN", "17700011"));
+        MockHttpSession manager = signIn(http, user("manager2@site.bt", "MANAGER", "17700012"));
+
+        // everyone: the built-in details (no Instagram yet: no icon)
+        http.perform(get("/api/site/info")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.phone").value("77269712"))
+                .andExpect(jsonPath("$.email").value("dpdrukbazaars@gmail.com"))
+                .andExpect(jsonPath("$.instagram").value(""));
+
+        String good = "{\"phone\":\"17 11 22 33\",\"email\":\"hello@drukbazaars.bt\",\"address\":\"Norzin Lam, Thimphu\","
+                + "\"facebook\":\"\",\"instagram\":\"https://www.instagram.com/drukbazaars\",\"youtube\":\"\",\"tiktok\":\"\"}";
+        http.perform(put("/api/site/admin/info").contentType(MediaType.APPLICATION_JSON).content(good)).andExpect(status().isUnauthorized());
+        http.perform(put("/api/site/admin/info").session(manager).contentType(MediaType.APPLICATION_JSON).content(good)).andExpect(status().isForbidden());
+        // a link must be a full https address; the phone digits; the email an email
+        http.perform(put("/api/site/admin/info").session(admin).contentType(MediaType.APPLICATION_JSON)
+                .content(good.replace("https://www.instagram.com/drukbazaars", "javascript:alert(1)"))).andExpect(status().isBadRequest());
+        http.perform(put("/api/site/admin/info").session(admin).contentType(MediaType.APPLICATION_JSON)
+                .content(good.replace("17 11 22 33", "call us"))).andExpect(status().isBadRequest());
+        http.perform(put("/api/site/admin/info").session(admin).contentType(MediaType.APPLICATION_JSON)
+                .content(good.replace("hello@drukbazaars.bt", "hello"))).andExpect(status().isBadRequest());
+
+        http.perform(put("/api/site/admin/info").session(admin).contentType(MediaType.APPLICATION_JSON).content(good))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.address").value("Norzin Lam, Thimphu"));
+        // an emptied link stays empty (the Facebook icon goes away), the new one shows
+        http.perform(get("/api/site/info"))
+                .andExpect(jsonPath("$.phone").value("17 11 22 33"))
+                .andExpect(jsonPath("$.facebook").value(""))
+                .andExpect(jsonPath("$.instagram").value("https://www.instagram.com/drukbazaars"));
+    }
+
     private MockHttpSession signIn(MockMvc http, User u) throws Exception {
         return (MockHttpSession) http.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"" + u.getEmail() + "\",\"password\":\"secret-1\"}"))

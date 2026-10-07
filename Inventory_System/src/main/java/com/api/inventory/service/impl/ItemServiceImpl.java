@@ -55,6 +55,7 @@ public class ItemServiceImpl implements ItemService {
         item.setCreatedAt(LocalDateTime.now());
         item.setCategory(dto.getCategory().trim());
         item.setDeliverySize(com.api.inventory.entity.DeliverySize.parse(dto.getDeliverySize()));
+        item.setLowStockThreshold(warningLevel(dto.getLowStockThreshold()));
 
         // ✅ Generate SKU BEFORE saving
         String autoSku = "ITEM-" + System.currentTimeMillis(); // Temporary unique ID
@@ -114,6 +115,7 @@ public class ItemServiceImpl implements ItemService {
         dto.setCreatedAt(item.getCreatedAt());
         dto.setSellerId(item.getSellerId());
         dto.setDeliverySize(com.api.inventory.entity.DeliverySize.of(item.getDeliverySize()).name());
+        dto.setLowStockThreshold(item.getLowStockThreshold());
 
         // Stock fields (from inventory_stock table)
         if (stock != null) {
@@ -175,6 +177,9 @@ public class ItemServiceImpl implements ItemService {
         existingItem.setIsActive(dto.getIsActive() != null ? dto.getIsActive() : existingItem.getIsActive());
         if (dto.getDeliverySize() != null) {
             existingItem.setDeliverySize(com.api.inventory.entity.DeliverySize.parse(dto.getDeliverySize()));
+        }
+        if (dto.getLowStockThreshold() != null) { // not sent = keep it
+            existingItem.setLowStockThreshold(warningLevel(dto.getLowStockThreshold()));
         }
 
         // ✅ Save updated item
@@ -353,4 +358,15 @@ public class ItemServiceImpl implements ItemService {
 	    // Convert to DTO
 	    return toDTO(item, stock);
 	}
+
+    /** "Warn me when stock reaches": 0 or more (0 = only when sold out). */
+    private static Integer warningLevel(Integer level) {
+        if (level == null) {
+            return null;
+        }
+        if (level < 0 || level > 1_000_000) {
+            throw new IllegalArgumentException("The low-stock warning must be a number from 0 up.");
+        }
+        return level;
+    }
 }

@@ -67,11 +67,15 @@ search by number, customer or journal number, open the receipt, or start a **Ret
 
 Needs the "Take returns and refund" permission.
 
-1. Find the sale in Sales history and tap **Return** (within **7 days** of the sale).
+1. Find the sale: a counter sale in **Sales history**, an online order on the **order board** (a delivered card, or
+   the side panel). Tap **Return** (within **7 days** of the sale; an online order must be fully delivered).
 2. Choose the items and quantities coming back. You can return line by line, over several visits.
 3. Mark damaged items as damaged: they do not go back into stock.
-4. The refund is what the customer actually paid for those items (with their tax), never the list price.
+4. The refund is what the customer actually paid for those items (with their tax), never the list price. The delivery
+   fee of an online order is not refunded.
 5. Print the credit note (A4 or receipt).
+6. For a seller's product, the seller's share of the returned items is taken off their earnings automatically, and the
+   seller is told.
 
 ## 3.3 Online orders: the order board
 
@@ -84,6 +88,10 @@ flowchart LR
 ```
 
 From packing on, the board works per **package**: one package per seller (our own products are one package).
+
+**Pick up myself**: a customer may collect the order instead. Such a package has a blue **Pick up** badge. After
+**Packed** it goes to **Waiting for the customer to collect** (counted in the Packed step as "to collect"), never to
+drivers. The customer brings a 4-digit **collection code**. It is late after 3 days: call the customer.
 
 **At the top**
 - The **pipeline**: how many orders are in each step. Tap a step to see only those.
@@ -108,9 +116,10 @@ with the distance. Tap a card for the side panel with the full history.
 | Verify payment | Check the payment (managers) |
 | To pack | **Take it** (you pack it), **Packed**, **Give back**, **Give to...** another packer (managers), print the packing slip, mark a seller's package packed |
 | Packed, needs a driver | **Give to a driver...** (only drivers whose vehicle fits the size), or **We deliver it** (our staff deliver, no driver pay) |
+| Waiting for the customer to collect | **Call customer**, **Call seller** (a seller's package), **Handed over**: type the customer's collection code, or, if they do not have it, check their name and phone and tap "No code: I checked who the customer is" |
 | Driver coming | **Collected**, **Change driver**, **Take off driver** |
 | On the way | **Delivered** (staff do not need the customer's code) |
-| Delivered | **Receipt** |
+| Delivered (or Collected) | **Receipt**, **Return** (with "Take returns and refund") |
 
 Taking and packing work needs "Pack, send and cancel orders"; giving work to others needs "Plan and assign orders".
 The board refreshes itself every minute.
@@ -132,9 +141,9 @@ who packs).
 ### Add or edit a product
 
 **Products > Add product** (or **Edit** on a product page) needs "Add and edit products":
-product name, description, category, cost price, selling price (or a markup %), MRP, opening stock, the low-stock
-warning level, **Delivery size** (small, medium, large, bulky), barcode, supplier item code, and a photo
-(JPG, PNG, WEBP or GIF, up to 5 MB).
+product name, description, category, cost price, selling price (or a markup %), MRP, opening stock,
+**Warn me when stock reaches** (the low-stock level; 0 = warn when sold out; empty = no warning), **Delivery size**
+(small, medium, large, bulky), barcode, supplier item code, and a photo (JPG, PNG, WEBP or GIF, up to 5 MB).
 
 ### Restock (stock that arrived)
 
@@ -148,15 +157,15 @@ warning level, **Delivery size** (small, medium, large, bulky), barcode, supplie
 
 ### Stock & expiry
 
-**Products > Stock & expiry** has three tabs: **On the shelf**, **Expiring soon**, **Expired**. It shows the stock
-value at cost. You can:
+**Products > Stock & expiry** has four tabs: **On the shelf**, **Expiring soon**, **Expired** and **Low stock**
+(products at or below their warning level, with a **Restock** button). It shows the stock value at cost. You can:
 
 - correct a batch's number or expiry date,
 - **write off** stock (broken, lost, expired) with a reason,
 - **count** a product: more than expected adds a batch, fewer takes from the batch that expires first.
 
-The system sells the batch that expires first, takes expired stock off sale every night, and tells you every
-Monday what expires within 30 days.
+The system sells the batch that expires first, takes expired stock off sale every night, tells you every Monday what
+expires within 30 days, and tells you when a product's stock goes down to its warning level.
 
 ## 3.6 Customers, messages and reviews
 

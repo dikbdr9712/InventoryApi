@@ -89,7 +89,8 @@ public class PackageService {
      */
     @Transactional
     public BigDecimal createPackages(Order order, List<OrderItem> lines) {
-        DeliveryPricingService.Point drop = order.getDropLatitude() == null || order.getDropLongitude() == null
+        boolean pickup = order.isPickup(); // the customer collects every package where it is packed
+        DeliveryPricingService.Point drop = pickup || order.getDropLatitude() == null || order.getDropLongitude() == null
                 ? null : new DeliveryPricingService.Point(order.getDropLatitude(), order.getDropLongitude());
 
         Map<Long, List<OrderItem>> bySeller = new LinkedHashMap<>();   // a null key = our own shop
@@ -130,10 +131,18 @@ public class PackageService {
             }
             pkg.setPickupAddress(planned.pickupAddress());
             pkg.setDeliverySize(price.size().name());
-            pkg.setDistanceKm(price.distanceKm());
-            pkg.setDistanceEstimated(price.estimated());
-            pkg.setDeliveryFee(price.fee());
-            pkg.setRiderPay(price.riderPay());
+            pkg.setSelfPickup(pickup);
+            if (pickup) { // collected by the customer: no delivery, no driver
+                pkg.setDistanceKm(null);
+                pkg.setDistanceEstimated(false);
+                pkg.setDeliveryFee(BigDecimal.ZERO);
+                pkg.setRiderPay(BigDecimal.ZERO);
+            } else {
+                pkg.setDistanceKm(price.distanceKm());
+                pkg.setDistanceEstimated(price.estimated());
+                pkg.setDeliveryFee(price.fee());
+                pkg.setRiderPay(price.riderPay());
+            }
             if (planned.pickup() != null) {
                 pkg.setPickupLatitude(planned.pickup().latitude());
                 pkg.setPickupLongitude(planned.pickup().longitude());
@@ -142,7 +151,7 @@ public class PackageService {
                 pkg.setDropLatitude(drop.latitude());
                 pkg.setDropLongitude(drop.longitude());
             }
-            pkg.setDropAddress(order.getAddress());
+            pkg.setDropAddress(pickup ? null : order.getAddress());
             pkg.setDeliveryCode(String.format("%04d", RANDOM.nextInt(10_000)));
             pkg.setStatus(OrderPackage.PENDING_PAYMENT);
             OrderPackage saved = packages.save(pkg);
@@ -150,7 +159,7 @@ public class PackageService {
             for (OrderItem line : group.getValue()) {
                 line.setPackageId(saved.getId());
             }
-            totalFees = totalFees.add(price.fee());
+            totalFees = totalFees.add(pkg.getDeliveryFee());
         }
         return totalFees;
     }
@@ -254,8 +263,18 @@ public class PackageService {
         p.setUpdatedBy(CurrentUser.email());
         OrderPackage saved = packages.save(p);
 
-        DeliverySize size = DeliverySize.of(saved.getDeliverySize());
         SellerProfile from = saved.getSellerId() == null ? null : sellers.findById(saved.getSellerId()).orElse(null);
+        if (saved.isSelfPickup()) {
+            String place = from == null ? "the DP DrukBazaars shop" : from.getShopName();
+            String where = place + (saved.getPickupAddress() == null || saved.getPickupAddress().isBlank() ? "" : ", " + saved.getPickupAddress());
+            orders.findById(saved.getOrderId()).ifPresent(order -> notify.customer(order, new NotificationService.Note("READY_TO_COLLECT",
+                    "Order #" + order.getOrderId() + " is ready to collect",
+                    "Collect it from " + where + ". Show your collection code " + saved.getDeliveryCode() + ".",
+                    "/orders/" + order.getOrderId()), true,
+                    "DP DrukBazaars: order #" + order.getOrderId() + " is ready. Collect it from " + place + " with code " + saved.getDeliveryCode() + "."));
+            return view(saved, staff ? Audience.STAFF : Audience.SELLER);
+        }
+        DeliverySize size = DeliverySize.of(saved.getDeliverySize());
         notify.ridersWhoCanCarry(size, new NotificationService.Note("NEW_JOB", "New delivery job: Nu. " + saved.getRiderPay(),
                 "Collect from " + (from == null ? "DP DrukBazaars" : from.getShopName() + (from.getTown() == null ? "" : ", " + from.getTown()))
                         + " · " + size.label + (saved.getDistanceKm() == null ? "" : " · " + saved.getDistanceKm().stripTrailingZeros().toPlainString() + " km")
@@ -338,6 +357,9 @@ public class PackageService {
         OrderPackage p = packages.findByIdForUpdate(packageId).orElseThrow(() -> new IllegalStateException("Package not found."));
         if (!OrderPackage.READY_FOR_PICKUP.equals(p.getStatus()) && !OrderPackage.ASSIGNED.equals(p.getStatus())) {
             throw new IllegalStateException("Only a packed package that has not been picked up can be given to a driver.");
+        }
+        if (p.isSelfPickup()) {
+            throw new IllegalStateException("The customer collects this package themselves: it needs no driver.");
         }
         RiderProfile rider = riders.findById(riderId == null ? -1L : riderId).orElseThrow(() -> new IllegalArgumentException("Choose a driver."));
         if (!rider.isApproved()) {
@@ -434,6 +456,7 @@ public class PackageService {
      */
     public List<PackageView> openJobs(RiderProfile rider) {
         return packages.findByStatusOrderByIdAsc(OrderPackage.READY_FOR_PICKUP).stream()
+                .filter(p -> !p.isSelfPickup()) // the customer collects these
                 .filter(p -> DeliverySize.of(p.getDeliverySize()).fits(rider.getVehicleType()))
                 .map(p -> view(p, Audience.RIDER_BOARD))
                 .toList();
@@ -455,7 +478,7 @@ public class PackageService {
             throw new IllegalStateException("You already have " + MAX_ACTIVE_JOBS_PER_RIDER + " jobs. Deliver one before taking another.");
         }
         OrderPackage p = packages.findByIdForUpdate(packageId).orElseThrow(() -> new IllegalStateException("Job not found."));
-        if (!OrderPackage.READY_FOR_PICKUP.equals(p.getStatus()) || p.getRiderId() != null) {
+        if (!OrderPackage.READY_FOR_PICKUP.equals(p.getStatus()) || p.getRiderId() != null || p.isSelfPickup()) {
             throw new IllegalStateException("Sorry, another rider has already taken this job.");
         }
         DeliverySize size = DeliverySize.of(p.getDeliverySize());
@@ -502,6 +525,9 @@ public class PackageService {
     public PackageView pickUp(Long packageId) {
         OrderPackage p = packages.findByIdForUpdate(packageId).orElseThrow(() -> new IllegalStateException("Package not found."));
         boolean staff = CurrentUser.has("orders.fulfil");
+        if (p.isSelfPickup()) {
+            throw new IllegalStateException("The customer collects this package themselves. Use \"Handed over\" when they come.");
+        }
         if (staff && p.getRiderId() == null) {
             // our own delivery: straight from "ready" to "on the way", no rider pay
             requireStatus(p, OrderPackage.READY_FOR_PICKUP, "Pack it first.");
@@ -551,7 +577,44 @@ public class PackageService {
         p.setDeliveredAt(Instant.now());
         p.setUpdatedBy(CurrentUser.email());
         packages.save(p);
+        finishHandedOver(p);
+        return view(p, staff ? Audience.STAFF : Audience.RIDER);
+    }
 
+    /**
+     * "Pick up myself": the customer came to collect a packed package. The seller (their own package) or staff hand
+     * it over; the customer's collection code is required, except that staff may confirm without it (they checked
+     * who it is). Books the seller's earnings like a delivery; no driver, no delivery fee.
+     */
+    @Transactional
+    public PackageView handOver(Long packageId, String code) {
+        OrderPackage p = packages.findByIdForUpdate(packageId).orElseThrow(() -> new IllegalStateException("Package not found."));
+        boolean staff = CurrentUser.has("orders.fulfil");
+        if (!staff) {
+            SellerProfile seller = requireApprovedSeller();
+            if (!Objects.equals(seller.getId(), p.getSellerId())) {
+                throw new AccessDeniedException("This is not your package.");
+            }
+        }
+        if (!p.isSelfPickup()) {
+            throw new IllegalStateException("This package is delivered by a driver, not collected by the customer.");
+        }
+        requireStatus(p, OrderPackage.READY_FOR_PICKUP, "Pack it first: only a packed package can be handed over.");
+        String given = code == null ? "" : code.trim();
+        if (!(staff && given.isEmpty()) && !given.equals(p.getDeliveryCode())) {
+            throw new IllegalStateException("That code is not right. Ask the customer for the 4-digit collection code on their order page.");
+        }
+        p.setStatus(OrderPackage.DELIVERED);
+        p.setDeliveredAt(Instant.now());
+        p.setHandedOverBy(CurrentUser.email());
+        p.setUpdatedBy(CurrentUser.email());
+        packages.save(p);
+        finishHandedOver(p);
+        return view(p, staff ? Audience.STAFF : Audience.SELLER);
+    }
+
+    /** A package reached the customer (delivered or collected): the earnings, the order, the notifications. */
+    private void finishHandedOver(OrderPackage p) {
         if (p.getSellerId() != null && p.getSellerEarning().signum() > 0
                 && !ledger.existsByPackageIdAndPartyTypeAndEntryType(p.getId(), LedgerEntry.SELLER, LedgerEntry.SALE)) {
             book(LedgerEntry.SELLER, p.getSellerId(), LedgerEntry.SALE, p.getSellerEarning(), p,
@@ -572,20 +635,21 @@ public class PackageService {
                 orders.save(order);
             });
         }
+        String reached = p.isSelfPickup() ? "collected" : "delivered";
         orders.findById(p.getOrderId()).ifPresent(order -> notify.customer(order, new NotificationService.Note("DELIVERED",
-                done ? "Order #" + order.getOrderId() + " delivered" : "Part of order #" + order.getOrderId() + " delivered",
+                done ? "Order #" + order.getOrderId() + " " + reached : "Part of order #" + order.getOrderId() + " " + reached,
                 "Thank you for shopping with DP DrukBazaars." + (done ? " How was it? Rate the products and our service on your order page."
                         : " The rest comes in a separate package."),
                 "/orders/" + order.getOrderId()), true, null));
         if (p.getSellerId() != null && p.getSellerEarning().signum() > 0) {
-            notify.seller(p.getSellerId(), new NotificationService.Note("EARNED", "Delivered: Nu. " + p.getSellerEarning() + " earned",
+            notify.seller(p.getSellerId(), new NotificationService.Note("EARNED",
+                    (p.isSelfPickup() ? "Collected" : "Delivered") + ": Nu. " + p.getSellerEarning() + " earned",
                     "Order #" + p.getOrderId() + " reached the customer. It is added to what we owe you.", "/seller"), true);
         }
         if (p.getRiderId() != null && p.getRiderPay().signum() > 0) {
             notify.rider(p.getRiderId(), new NotificationService.Note("EARNED", "Nu. " + p.getRiderPay() + " added to your earnings",
                     "Delivery of order #" + p.getOrderId() + " done.", "/rider"), false);
         }
-        return view(p, staff ? Audience.STAFF : Audience.RIDER);
     }
 
     // ================= Customer and staff =================
@@ -662,6 +726,9 @@ public class PackageService {
         }
 
         boolean riderOnJob = who == Audience.RIDER && RIDER_ACTIVE.contains(p.getStatus());
+        // a customer who collects it needs to know where, and whom to call (once it is paid)
+        boolean collecting = who == Audience.CUSTOMER && p.isSelfPickup() && !OrderPackage.PENDING_PAYMENT.equals(p.getStatus())
+                && !OrderPackage.CANCELLED.equals(p.getStatus());
         boolean showCustomerContact = who == Audience.STAFF || riderOnJob;
         boolean showMoney = who == Audience.STAFF || who == Audience.SELLER;
         boolean showRiderContact = who != Audience.RIDER_BOARD && who != Audience.SELLER;
@@ -669,8 +736,8 @@ public class PackageService {
         return new PackageView(
                 p.getId(), p.getOrderId(), p.getStatus(),
                 p.getSellerId(), seller == null ? "DP DrukBazaars" : seller.getShopName(),
-                who == Audience.SELLER || who == Audience.CUSTOMER ? null : (seller == null ? null : seller.getPhone()),
-                who == Audience.CUSTOMER ? null : p.getPickupAddress(),
+                who == Audience.SELLER || (who == Audience.CUSTOMER && !collecting) ? null : (seller == null ? null : seller.getPhone()),
+                who == Audience.CUSTOMER && !collecting ? null : p.getPickupAddress(),
                 seller == null ? null : seller.getTown(),
                 who == Audience.RIDER_BOARD || order == null ? null : order.getCustomerName(),
                 showCustomerContact && order != null ? order.getCustomerPhone() : null,
@@ -694,6 +761,7 @@ public class PackageService {
                 who == Audience.CUSTOMER && !OrderPackage.CANCELLED.equals(p.getStatus()) ? p.getDeliveryCode() : null,
                 count,
                 who == Audience.RIDER_BOARD ? List.of() : lines,
-                p.getCreatedAt(), p.getPackedAt(), p.getAssignedAt(), p.getPickedUpAt(), p.getDeliveredAt());
+                p.getCreatedAt(), p.getPackedAt(), p.getAssignedAt(), p.getPickedUpAt(), p.getDeliveredAt(),
+                p.isSelfPickup(), (who == Audience.STAFF || who == Audience.SELLER) && p.getHandedOverBy() != null ? nameOf(p.getHandedOverBy()) : null);
     }
 }

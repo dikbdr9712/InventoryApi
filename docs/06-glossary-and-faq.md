@@ -9,6 +9,7 @@
 | **Audit / Activity log** | The list of sensitive actions: who did what and when. In People & access > Activity. |
 | **Batch** | One delivery of a product's stock, with its own cost, batch number, expiry date and supplier. |
 | **Cash drawer (shift)** | A cashier's till from opening (with the float) to closing (with the count). |
+| **Collection code** | The same 4 digits as the delivery code, for an order the customer picks up: shown to the seller or staff when collecting. |
 | **Commission** | The part of a seller's sale DP DrukBazaars keeps, as a percentage. |
 | **Credit note** | The printed proof of a return and its refund. |
 | **Delivery code** | The 4-digit code a customer gives the driver at the door. It proves the package reached the right person. |
@@ -16,7 +17,8 @@
 | **FEFO** | First expired, first out: the batch that expires first is sold first. |
 | **Float** | The cash in a drawer when it is opened. |
 | **Journal number** | The bank's reference number of a transfer, shown in the customer's banking app. Never accepted twice. |
-| **Ledger (earnings)** | The record of what a seller or driver earned and was paid. Their balance is what is still owed. |
+| **Ledger (earnings)** | The record of what a seller or driver earned and was paid (and, for sellers, returns taken back). Their balance is what is still owed. |
+| **Low stock** | A product whose stock is at or below its warning level ("Warn me when stock reaches"). |
 | **Marketplace** | Selling other local sellers' products through DP DrukBazaars, with our drivers. |
 | **MRP** | The maximum retail price printed on a product. |
 | **Notification** | A message in the bell at the top (and sometimes by email or SMS). |
@@ -26,7 +28,8 @@
 | **Package** | The part of an order that one seller (or our shop) sends. Each package is packed and delivered on its own. |
 | **Payout** | A payment from DP DrukBazaars to a seller or driver, recorded with the journal number. |
 | **Permission** | One thing a person may do (for example "Verify payments"). Roles are groups of permissions. |
-| **Pickup point** | Where a driver collects a package: the shop or the seller's address. |
+| **Pick up myself** | The checkout choice to collect the order yourself: no delivery fee, no driver. Each package is collected where it is packed. |
+| **Pickup point** | Where a driver (or a customer who picks up) collects a package: the shop or the seller's address. |
 | **POS** | Point of sale: the counter screen for selling in the shop. |
 | **RMA Payment Gateway** | The Royal Monetary Authority of Bhutan's service that moves money from customers' bank accounts to the shop. |
 | **Role** | Admin, Manager, Controller, Seller, Driver, Customer, or a role the admin made (for example Cashier). |
@@ -42,7 +45,7 @@
 | Created / Pending | Placed, waiting for payment. The customer can still cancel. |
 | Confirmed | Paid. Stock is taken and packing starts. |
 | Shipped | At least one package was collected by a driver. |
-| Completed | Every package was delivered. |
+| Completed | Every package was delivered (or collected by the customer). |
 | Cancelled | Cancelled by the customer or the shop. |
 
 **Package** (on the order board)
@@ -52,9 +55,10 @@
 | Pending payment | Awaiting payment | The order is not paid yet. |
 | To pack | To pack | Paid; the seller or our staff must pack it. |
 | Ready for pickup | Packed, needs a driver | Packed; waiting for a driver. |
+| Ready for pickup (Pick up myself) | Waiting for the customer to collect | Packed; the customer comes for it with the collection code. |
 | Assigned | Driver coming to collect | A driver has the job. |
 | Picked up | On the way | The driver collected it. The customer has the delivery code. |
-| Delivered | Delivered | The customer gave the code (or our staff delivered it). |
+| Delivered | Delivered | The customer gave the code (or our staff delivered it). For pick up: **Collected**, handed over by the seller or staff. |
 | Cancelled | Cancelled | The order was cancelled. |
 
 **Payment from a bank account**
@@ -79,6 +83,8 @@
   is right and that your phone number is registered with your bank.
 - **Where is my delivery code?** On your order page while the package is on its way (and by SMS when text messages
   are on).
+- **Can I collect my order myself?** Yes: choose **Pick up myself** at checkout. There is no delivery fee. You are told
+  when it is ready, where to go, and your collection code.
 - **Can I pay cash on delivery?** No. Online orders are paid before delivery, so drivers never carry cash.
 - **Why is the delivery fee different for two products?** It depends on the size of the products and the distance,
   and each seller sends their own package.
@@ -89,6 +95,10 @@
 
 - **When do I see an order?** Only after the customer has paid.
 - **When am I paid?** Your earning is recorded when the package is delivered. The admin pays out by bank transfer.
+- **A customer returned my product. What happens?** Your share of it (the price minus the commission) is taken off
+  your earnings, and you are told. It shows as "Returned by the customer" in Money.
+- **A customer came to collect an order.** Ask for their collection code, then **Customer collected it** in Packages.
+  Without the right code, do not hand it over; they find the code on their order page.
 - **Can I sell at DP DrukBazaars' counter?** No, marketplace products are sold online only.
 
 **Drivers**
@@ -103,10 +113,13 @@
 - **I cannot see a page.** Your role does not have that permission. Ask the admin.
 - **My cash count is different.** Close the drawer with the real count and write a note; the manager sees it.
 - **A customer wants a refund after 8 days.** Returns are taken within 7 days. Ask the manager.
+- **Is the delivery fee refunded?** No. The delivery took place; only the items are refunded.
 
 **Admin**
 
 - **How do I add a staff member?** People & access > Add a person, then choose their role.
+- **A customer changed their email or phone number.** People & access > **Edit details** on their row. Their
+  orders and reviews move with them; a new email signs them out.
 - **How do I change what managers can do?** People & access > Roles & permissions.
 - **How do I take real payments?** See the Admin guide, section 6: register with the RMA Payment Gateway first.
 - **Where are the backups?** See the Admin guide, section 8.

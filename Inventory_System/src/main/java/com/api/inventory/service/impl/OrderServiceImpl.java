@@ -323,7 +323,9 @@ public class OrderServiceImpl implements OrderService {
 	    List<OrderItem> orderItems = new ArrayList<>();
 	    BigDecimal totalAmount = BigDecimal.ZERO;
 
-	    if (dto.getAddress() == null || dto.getAddress().isBlank()) {
+	    // "Pick up myself": no address, no delivery fee; the customer collects each package where it is packed
+	    boolean pickup = Order.PICKUP.equalsIgnoreCase(dto.getFulfilment() == null ? "" : dto.getFulfilment().trim());
+	    if (!pickup && (dto.getAddress() == null || dto.getAddress().isBlank())) {
 	        throw new IllegalStateException("Please enter the delivery address.");
 	    }
 
@@ -363,14 +365,17 @@ public class OrderServiceImpl implements OrderService {
 	    order.setCustomerName(dto.getCustomerName());
 	    order.setCustomerEmail(dto.getCustomerEmail());   // ← ADD THIS
 	    order.setCustomerPhone(dto.getCustomerPhone());
-	    order.setAddress(dto.getAddress());               // ← ADD THIS
-	    // where on the map: the chosen delivery area, or the phone's location (none = the delivery fee is estimated)
-	    com.api.inventory.service.DeliveryPricingService.Drop drop =
-	            deliveryPricing.drop(dto.getDropLatitude(), dto.getDropLongitude(), dto.getAreaId());
-	    if (drop.point() != null) {
-	        order.setDropLatitude(drop.point().latitude());
-	        order.setDropLongitude(drop.point().longitude());
-	        order.setDropLocation(drop.label());
+	    order.setFulfilment(pickup ? Order.PICKUP : Order.DELIVERY);
+	    order.setAddress(pickup ? null : dto.getAddress());
+	    if (!pickup) {
+	        // where on the map: the chosen delivery area, or the phone's location (none = the delivery fee is estimated)
+	        com.api.inventory.service.DeliveryPricingService.Drop drop =
+	                deliveryPricing.drop(dto.getDropLatitude(), dto.getDropLongitude(), dto.getAreaId());
+	        if (drop.point() != null) {
+	            order.setDropLatitude(drop.point().latitude());
+	            order.setDropLongitude(drop.point().longitude());
+	            order.setDropLocation(drop.label());
+	        }
 	    }
 	    order.setOrderStatus("CREATED");
 	    order.setPaymentStatus("PENDING");
@@ -399,7 +404,8 @@ public class OrderServiceImpl implements OrderService {
 	    customerService.linkOrder(finalOrder); // the buyer's customer record and history
 	    notify.customer(finalOrder, new com.api.inventory.service.NotificationService.Note("ORDER_PLACED",
 	            "Order #" + finalOrder.getOrderId() + " received",
-	            "Total Nu. " + finalOrder.getTotalAmount() + ". We start packing as soon as your payment is confirmed.",
+	            "Total Nu. " + finalOrder.getTotalAmount() + ". We start packing as soon as your payment is confirmed."
+	                    + (pickup ? " We tell you when it is ready to collect." : ""),
 	            "/orders/" + finalOrder.getOrderId()), true, null);
 	    return finalOrder;
 	}
