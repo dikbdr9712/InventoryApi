@@ -51,6 +51,9 @@ public class AuthController {
     private com.api.inventory.service.PasswordResetService passwordReset;
 
     @Autowired
+    private com.api.inventory.service.EmailService email;
+
+    @Autowired
     private com.api.inventory.service.LegalTermsService legal;
 
     @Autowired
@@ -189,6 +192,15 @@ public class AuthController {
     // ================= Forgot password =================
 
     /** Sends a reset link by email. The answer is the same whether or not the email has an account. */
+    /**
+     * Can this server send the reset email? When it cannot (no email account set up, for example on free hosting),
+     * the page tells people to ask the shop instead of waiting for an email that never comes.
+     */
+    @GetMapping("/forgot-password")
+    public Map<String, Boolean> forgotPasswordAvailable() {
+        return Map.of("email", email.isEnabled());
+    }
+
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body, HttpServletRequest httpRequest) {
         passwordReset.request(body == null ? null : body.get("email"), clientIp(httpRequest));

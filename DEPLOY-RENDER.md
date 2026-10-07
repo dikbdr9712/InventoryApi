@@ -117,9 +117,18 @@ Nothing to run: the app creates every table on its first start (Flyway, versions
    | `/*` | `/index.html` | Rewrite |
 
    Save. (The first two send data and photo requests to the backend; the last lets pages like `/admin/orders`
-   open directly.)
-2. If the website's address is not `https://dkphar-web.onrender.com`, go to the backend → **Environment** →
-   set `APP_PUBLIC_URL` to the real address → **Save** (it redeploys).
+   open directly.) Check that the Action really says **Rewrite**: with **Redirect** the site fails with a CORS
+   error, and Chrome then remembers the redirect (clear "Cached images and files" or use an Incognito window).
+2. Backend → **Environment** → set these two to the website's real address (no `/` at the end) → **Save** (it
+   redeploys):
+
+   | Key | Value |
+   |---|---|
+   | `APP_PUBLIC_URL` | `https://dkphar-web.onrender.com` |
+   | `APP_CORS_ALLOWED_ORIGINS` | `https://dkphar-web.onrender.com` |
+
+   The second one is needed because the forwarded requests reach the backend under its own address: without it,
+   sign-up and sign-in fail with "Invalid CORS request" (reading products still works).
 3. Open the website. Products load (empty at first) and **Sign up** works.
 
 ---
@@ -170,10 +179,26 @@ Products, photos, customers, users and orders from your local `inventorydb`:
 - **Space:** Aiven free is 1 GB, and photos count. Use photos under 1 MB where you can.
 - **Idle database:** Aiven may switch off a free database that is not used for a long time (it emails first).
   Switch it on again in the Aiven console.
-- **Emails** (password reset, order updates) are only written to the Render **Logs** until you add an email
-  account, for example Gmail with an app password: `APP_MAIL_ENABLED=true`, `SPRING_MAIL_HOST=smtp.gmail.com`,
-  `SPRING_MAIL_PORT=587`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD`, `APP_MAIL_FROM`.
-- **Updates:** push to GitHub and Render deploys both by itself. Database changes (new `V8__...sql`) apply on start.
+- **Emails** (password reset by email, order updates) are not sent until you add an email account. Until then the
+  "Forgot password?" page tells customers to call or message the shop, and staff give them a temporary password in
+  **People & access**. Render's free plan blocks the usual email ports (25, 465, 587), so Gmail does not work here.
+  Brevo's free plan (300 emails a day) also listens on port **2525**, which is not blocked:
+  1. Sign up at brevo.com. Under **Senders, domains & dedicated IPs → Senders**, add and confirm the address the
+     emails come from.
+  2. **SMTP & API → SMTP**: copy the **Login** and create an **SMTP key** (not an API key).
+  3. Render → InventoryApi → **Environment**, add:
+
+     | Key | Value |
+     |---|---|
+     | `APP_MAIL_ENABLED` | `true` |
+     | `SPRING_MAIL_HOST` | `smtp-relay.brevo.com` |
+     | `SPRING_MAIL_PORT` | `2525` |
+     | `SPRING_MAIL_USERNAME` | the Login from step 2 |
+     | `SPRING_MAIL_PASSWORD` | the SMTP key from step 2 |
+     | `APP_MAIL_FROM` | `DK/Phar <the address you confirmed in step 1>` |
+
+  4. **Save, rebuild, and deploy**. The "Forgot password?" page then shows the form that emails a reset code.
+- **Updates:** push to GitHub and Render deploys both by itself. Database changes (new `V9__...sql`) apply on start.
 - **Passwords** go only into Render's Environment page, never into the code.
 - **Faster and still free:** an Oracle Cloud "Always Free" server (no sleeping, much more memory) follows DEPLOY.md
   instead; it needs a card for identity checks and some Linux work.

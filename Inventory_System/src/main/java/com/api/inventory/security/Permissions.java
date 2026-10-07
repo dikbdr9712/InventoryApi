@@ -58,6 +58,8 @@ public final class Permissions {
                     "See the customer list with contact details, visits and order history.", true),
             new Definition("customers.manage", "Customers and reports", "Edit customer details",
                     "Correct a customer's name, phone, email, address and notes.", false),
+            new Definition("reviews.manage", "Customers and reports", "Manage reviews",
+                    "See every rating and review, drivers' delivery ratings, hide abusive reviews and reply to them.", false),
             // Running the business
             new Definition("users.manage", "Administration", "Manage users and roles",
                     "Add people, switch accounts off, reset passwords, and change what each role may do.", true),
@@ -118,7 +120,8 @@ public final class Permissions {
         Map<String, Set<String>> d = new LinkedHashMap<>();
         d.put(ADMIN, ADMIN_KEYS);
         d.put("MANAGER", Set.of("pos.use", "pos.discount", "pos.shifts.manage", "sales.return", "orders.view", "orders.fulfil",
-                "orders.assign", "payments.verify", "items.manage", "stock.restock", "messages.view", "reports.view", "customers.view", "customers.manage"));
+                "orders.assign", "payments.verify", "items.manage", "stock.restock", "messages.view", "reports.view", "customers.view", "customers.manage",
+                "reviews.manage"));
         d.put("CONTROLLER", Set.of("pos.use", "orders.view", "orders.fulfil", "stock.restock", "messages.view", "customers.view"));
         d.put(SELLER, SELLER_ALL);
         d.put(RIDER, RIDER_ALL);
@@ -141,10 +144,11 @@ public final class Permissions {
      * Permissions added to the catalog after a version: roles that were already set up get them ONCE (only those in
      * the role's defaults), so a new feature reaches existing roles without overwriting what an admin chose.
      */
-    public static final int CATALOG_VERSION = 3;
+    public static final int CATALOG_VERSION = 4;
     public static final Map<Integer, Set<String>> ADDED_IN = Map.of(
             2, Set.of("customers.view", "customers.manage"),
-            3, Set.of("orders.assign"));
+            3, Set.of("orders.assign"),
+            4, Set.of("reviews.manage"));
 
     /** Default permissions of a role (empty for unknown roles). For tests and first-time setup only. */
     public static Set<String> defaultsFor(String role) {

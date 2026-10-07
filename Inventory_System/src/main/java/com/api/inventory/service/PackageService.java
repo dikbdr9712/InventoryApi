@@ -574,7 +574,8 @@ public class PackageService {
         }
         orders.findById(p.getOrderId()).ifPresent(order -> notify.customer(order, new NotificationService.Note("DELIVERED",
                 done ? "Order #" + order.getOrderId() + " delivered" : "Part of order #" + order.getOrderId() + " delivered",
-                "Thank you for shopping with DK/Phar." + (done ? "" : " The rest comes in a separate package."),
+                "Thank you for shopping with DK/Phar." + (done ? " How was it? Rate the products and our service on your order page."
+                        : " The rest comes in a separate package."),
                 "/orders/" + order.getOrderId()), true, null));
         if (p.getSellerId() != null && p.getSellerEarning().signum() > 0) {
             notify.seller(p.getSellerId(), new NotificationService.Note("EARNED", "Delivered: Nu. " + p.getSellerEarning() + " earned",

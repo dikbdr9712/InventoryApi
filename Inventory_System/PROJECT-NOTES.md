@@ -573,7 +573,7 @@ V6__order_handling.sql: order_packages.packer_email, packing_started_at, rider_a
 orders.payment_verified_by, payment_verified_at. Tests: OrderBoardTest (3). 40 in all.
 
 ## 27. Free hosting: Render + Aiven (5 Oct 2026)
-Guide: D:InventoryDEPLOY-RENDER.md (Aiven free MySQL, Render Docker web service for the API, Render static site
+Guide: D:\Inventory\DEPLOY-RENDER.md (Aiven free MySQL, Render Docker web service for the API, Render static site
 for the website with rewrites /api/* and /uploads/* to the API and /* to /index.html, so everything is one address
 and the session cookie stays first-party).
 - Uploaded files go through FileStore (service/files): DiskFileStore (default, folders) or DatabaseFileStore
@@ -584,3 +584,36 @@ and the session cookie stays first-party).
   capped for 512 MB, Bhutan time zone, non-root). InventoryWeb/.node-version = 24 (Angular 22 needs 22.22+/24.15+).
 - app.payments.bank.test-on-live-site=true allows TEST MODE bank payments under the prod profile, for a demo copy only.
 - Tests: FilesInDatabaseTest (1). 41 in all.
+
+## 28. Ratings and reviews; help when a password is forgotten (7 Oct 2026)
+Forgotten password:
+- GET /api/auth/forgot-password (public) answers {email: true|false}: whether reset e-mails can be sent
+  (app.mail.enabled). With e-mail on, /forgot-password works as before (a code by e-mail, then a new password).
+- With e-mail off (Render free blocks SMTP ports 25/465/587), the page shows "Ask us to reset it" instead of the form:
+  call the shop, or "Send a message" (/contact?subject=Forgot my password, text filled in). Staff reset the password
+  in People & access (shows a temporary password); the customer changes it in My profile.
+- To turn e-mail on when hosted: Brevo SMTP relay on port 2525 (smtp-relay.brevo.com), env APP_MAIL_ENABLED=true,
+  SPRING_MAIL_HOST, SPRING_MAIL_PORT=2525, SPRING_MAIL_USERNAME, SPRING_MAIL_PASSWORD (the SMTP key), APP_MAIL_FROM.
+
+Ratings (only for what was delivered to the customer: the order COMPLETED, or that seller's package DELIVERED):
+- Each product of an order: 1-5 stars + optional comment (1000), one per customer per product (rating it again
+  from a later order updates it). The order's service and delivery: 1-5 stars each + comment, one per order; the
+  driver of the order is kept with it.
+- Customer: "Rate your order" panel at the bottom of /orders/:id (Components/order-rating), Change after saving.
+  The "delivered" notification invites them to rate.
+- Public: stars on product cards (GET /api/reviews/summary), rating line + "Customer reviews" section with the
+  5..1 bars on the product page, /reviews page (service, delivery and product averages, what customers say, best
+  rated products). Names shown as "First L."; hidden reviews are not shown or counted.
+- Staff /admin/reviews (Staff menu > Customers > Reviews, permission reviews.manage "Manage reviews"; MANAGER by
+  default, ADMIN always; CATALOG_VERSION 4 gives it to existing MANAGER roles once): tabs Products / Service &
+  delivery / Drivers (average per driver, lowest first); filters All / Low (1-2 stars) / Not answered / Hidden;
+  Answer (shown publicly, the customer gets a notification) and Hide / Show again. A rating of 1-2 stars notifies
+  everyone with reviews.manage.
+- Components/stars (app-stars): shows an average (halves) or, with "pick", lets the person choose; the word next to
+  the stars has a fixed width so the stars do not move under the mouse.
+
+Backend: ProductReview, OrderFeedback (+ repositories), ReviewService, ReviewController /api/reviews (public GET
+products/{itemId}, summary, service; signed in: GET orders/{orderId}, POST orders/{orderId}/products/{itemId},
+POST orders/{orderId}/service; reviews.manage: GET admin, POST admin/{products|service}/{id}/hidden and /reply).
+V8__reviews.sql: product_reviews (unique user_email + item_id), order_feedback (unique order_id).
+Tests: ReviewTest (2). 43 in all.

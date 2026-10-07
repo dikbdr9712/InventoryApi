@@ -55,6 +55,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/online-payments/callback/*").permitAll()   // the gateway, checked by its signature
                         .requestMatchers(HttpMethod.GET, "/api/legal/terms/*", "/api/legal/terms/*/versions/*").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/contact").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/reviews/products/*", "/api/reviews/summary", "/api/reviews/service").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // everything else in the API needs a signed-in person (and then its own permission)
                         .requestMatchers("/api/**").authenticated()
