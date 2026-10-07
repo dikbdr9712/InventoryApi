@@ -1,4 +1,4 @@
-# DK/Phar Inventory: project notes
+# DP DrukBazaars: project notes
 
 Keep this file in the root of BOTH projects (or one shared notes folder) and update it after each step.
 To continue in a new chat, paste this file first. It saves explaining everything again.
@@ -487,7 +487,7 @@ Frontend: Components/pay-bank (route pay/bank, signed in): bank cards, account n
 send again, use another account, cancel. services/online-payments.ts: banks, bankView, bankRequestCode, bankPay.
 Payment page shows the bank choice with its own explanation. Disabled green buttons no longer turn Bootstrap blue.
 
-To go live with real money: register DK/Phar as a merchant with the RMA Payment Gateway, get their kit (test
+To go live with real money: register DP DrukBazaars as a merchant with the RMA Payment Gateway, get their kit (test
 address, merchant id, keys, message format), write RmaBankGatewayClient implementing BankGatewayClient
 (@ConditionalOnProperty app.payments.bank.mode=rma), try it on their test address, then set
 APP_PAYMENTS_BANK_MODE=rma on the server. Nothing else changes.
@@ -514,7 +514,7 @@ a phone; Print uses utils/print-area. Links: payment result (paid), order page (
 
 Real money (RmaBankGatewayClient, app.payments.bank.mode=rma): the RMA Payment Gateway's merchant API (AR register,
 AE account enquiry -> the bank texts the OTP, DR debit -> bfs_debitAuthNo = journal), every message signed
-SHA1withRSA with DK/Phar's key, RMA's answers checked with RMA's key. Settings and steps: DEPLOY.md. Bank ids are
+SHA1withRSA with DP DrukBazaars' key, RMA's answers checked with RMA's key. Settings and steps: DEPLOY.md. Bank ids are
 RMA's (1010 BoB ... 1060 DK). Needs the merchant registration and kit before it can run; check field names against
 the kit and test on RMA's UAT first.
 When the bank's answer to the debit never arrives (timeout, broken connection, an answer failing its signature
@@ -642,3 +642,28 @@ Tests: ReviewTest (2). 43 in all.
   cannot send our own text, so it needs an upgraded account. See DEPLOY-RENDER.md.
 - PasswordResetService (sendCode, verifyCode, reset), PasswordResetCode + repository, V9__password_reset_codes.sql.
   Audit: PASSWORD_RESET_CODE_OK, PASSWORD_RESET_SELF. Tests: PasswordResetCodeTest (3). 46 in all.
+
+## 30. Renamed to DP DrukBazaars, an online shopping platform (7 Oct 2026)
+The shop is now "DP DrukBazaars" (was DK/Phar Inventory Management System), and the "natural products" wording is
+gone: it is an online shopping platform / marketplace for Bhutan.
+- Website: header and sign-in pages "DP DrukBazaars / Online shopping", footer, page title and description, home,
+  About (mission, vision), receipts and invoices (SHOP.name in utils/shop-info.ts and pos.ts), "Sold by",
+  "replied:", partner pages, payment pages, cash drawer report.
+- Server: emails, text messages, notifications, delivery pickup names, the RMA payment description
+  ("DP DrukBazaars order N"), the default sender (app.mail.from), the legal texts in resources/legal.
+- Not renamed on purpose: technical names (database user dkphar_app, deploy/dkphar.* files, the container user,
+  scratch database names) and the applied migrations V1-V9 (Flyway checks them; changing them stops the start).
+- The live database keeps version 1 of the Terms, Seller and Driver agreements with the old name: publish a new
+  version in Marketplace > Terms (people are asked to accept it once).
+
+## 31. Our own pictures, and real wording (7 Oct 2026)
+- The test photos are replaced by pictures drawn for DP DrukBazaars (SVG, public/Images/art, made by
+  scripts/draw-art.js: change it and run `node scripts/draw-art.js` to redraw):
+  banner-market, banner-delivery, banner-pay, banner-track (the home banner, each with its own description for
+  screen readers), together (home, next to the "one drop / ocean" quote), about (About page, top).
+  The old test photos (cors-*.jpg, alternative-medicine-capsules.jpg, ...) are no longer used by any page.
+- Services page: real points only (shop online, products from us and checked local sellers, follow every order;
+  riders and the delivery code; paying from your bank account; reviews from customers who received their order).
+- Still "test" on purpose: the live site's bank payments run in TEST MODE (APP_PAYMENTS_BANK_MODE=test with
+  APP_PAYMENTS_BANK_TEST_ON_LIVE_SITE=true), so the payment pages say "TEST MODE: no real money". That wording
+  goes away by itself when the RMA Payment Gateway is connected (APP_PAYMENTS_BANK_MODE=rma, see DEPLOY.md).

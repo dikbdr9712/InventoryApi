@@ -102,7 +102,7 @@ class OrderBoardTest {
         assertEquals("PACK", toPack.stage());
         assertEquals("boss", toPack.verifiedBy(), "who checked the payment");
         assertNotNull(toPack.verifiedAt());
-        assertEquals("DK/Phar", toPack.sellerName());
+        assertEquals("DP DrukBazaars", toPack.sellerName());
         assertNull(toPack.packerEmail());
         assertTrue(b.counts().toPackNotStarted() >= 1);
         assertTrue(b.canAssign());

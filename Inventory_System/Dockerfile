@@ -1,5 +1,5 @@
-# DK/Phar Inventory API in a container (Render, or any Docker host).
-# Build:  docker build -t dkphar-api .        Run:  docker run -p 8080:8080 --env-file dkphar.env dkphar-api
+# DP DrukBazaars API in a container (Render, or any Docker host).
+# Build:  docker build -t drukbazaars-api .   Run:  docker run -p 8080:8080 --env-file drukbazaars.env drukbazaars-api
 # Settings come from environment variables (see DEPLOY-RENDER.md at the top of the repository).
 
 # ---- 1. Build the jar with Maven and Java 26 ----

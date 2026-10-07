@@ -160,7 +160,7 @@ public class DeliveryPricingService {
             return seller.getPickupAddress() + (seller.getTown() == null ? "" : ", " + seller.getTown());
         }
         String shop = marketplace.settings().getShopAddress();
-        return shop == null || shop.isBlank() ? "DK/Phar shop" : "DK/Phar shop, " + shop;
+        return shop == null || shop.isBlank() ? "DP DrukBazaars shop" : "DP DrukBazaars shop, " + shop;
     }
 
     // ================= Planning an order =================
@@ -200,7 +200,7 @@ public class DeliveryPricingService {
                 SellerProfile seller = group.getKey() == 0L ? null : sellers.findById(group.getKey()).orElse(null);
                 PlannedPackage planned = plan(seller, group.getValue(), drop.point());
                 Price p = planned.price();
-                result.add(new PackageQuote(seller == null ? "DK/Phar" : seller.getShopName(), seller == null ? null : seller.getTown(),
+                result.add(new PackageQuote(seller == null ? "DP DrukBazaars" : seller.getShopName(), seller == null ? null : seller.getTown(),
                         p.size().name(), p.size().label, p.size().vehicle, p.distanceKm(), p.estimated(), p.fee()));
                 total = total.add(p.fee());
             }

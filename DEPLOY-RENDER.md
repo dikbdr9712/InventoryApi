@@ -1,4 +1,4 @@
-# DK/Phar on free hosting: Render + Aiven
+# DP DrukBazaars on free hosting: Render + Aiven
 
 Three free parts:
 
@@ -197,7 +197,7 @@ Products, photos, customers, users and orders from your local `inventorydb`:
      | `SPRING_MAIL_PORT` | `2525` |
      | `SPRING_MAIL_USERNAME` | the Login from step 2 |
      | `SPRING_MAIL_PASSWORD` | the SMTP key from step 2 |
-     | `APP_MAIL_FROM` | `DK/Phar <the address you confirmed in step 1>` |
+     | `APP_MAIL_FROM` | `DP DrukBazaars <the address you confirmed in step 1>` |
 
   4. **Save, rebuild, and deploy**. On "Forgot password?" the **Email** choice then works (a code and a link).
 - **Text messages (SMS)** are never free: you need a paid SMS account. Until one is added, the **Text message**
@@ -208,7 +208,7 @@ Products, photos, customers, users and orders from your local `inventorydb`:
   - **Twilio** (pay as you go; a free trial cannot send our own text, so the account must be upgraded):
     `APP_SMS_ENABLED` = `true`, `APP_SMS_PROVIDER` = `twilio`, `APP_SMS_TWILIO_ACCOUNT_SID` and
     `APP_SMS_TWILIO_AUTH_TOKEN` (Twilio Console → Account info), `APP_SMS_TWILIO_FROM` = a sender name such as
-    `DKPhar` (Bhutan accepts letter sender names) or a Twilio number / Messaging Service id (`MG...`).
+    `DrukBazaars` (up to 11 letters; Bhutan accepts letter sender names) or a Twilio number / Messaging Service id (`MG...`).
   Save, rebuild, and deploy; then try "Forgot password?" → Text message with your own number.
 - **Updates:** push to GitHub and Render deploys both by itself. Database changes (new `V9__...sql`) apply on start.
 - **Passwords** go only into Render's Environment page, never into the code.

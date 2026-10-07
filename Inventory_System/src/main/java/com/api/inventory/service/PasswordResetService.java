@@ -152,17 +152,17 @@ public class PasswordResetService {
 
         if (byEmail) {
             String link = trimSlash(publicUrl) + "/reset-password?token=" + newLink(user, now, ip);
-            email.sendEmail(user.getEmail(), code + " is your DK/Phar code to choose a new password",
+            email.sendEmail(user.getEmail(), code + " is your DP DrukBazaars code to choose a new password",
                     "Hello " + user.getName() + ",\n\n"
-                            + "Someone (hopefully you) asked to choose a new password for your DK/Phar account.\n\n"
+                            + "Someone (hopefully you) asked to choose a new password for your DP DrukBazaars account.\n\n"
                             + "Your code: " + code + "\n"
                             + "Type it on the page where you asked for it. It works for 10 minutes.\n\n"
                             + "Or open this link within 30 minutes to choose the new password:\n" + link + "\n\n"
-                            + "Never share this code or link. DK/Phar staff will never ask you for them.\n"
+                            + "Never share this code or link. DP DrukBazaars staff will never ask you for them.\n"
                             + "If you did not ask for this, ignore this email: your password stays the same.\n\n"
-                            + "DK/Phar");
+                            + "DP DrukBazaars");
         } else {
-            sms.send(user.getPhone(), "DK/Phar: " + code + " is your code to choose a new password. It works for 10 minutes."
+            sms.send(user.getPhone(), "DP DrukBazaars: " + code + " is your code to choose a new password. It works for 10 minutes."
                     + " Never share it, we will never ask for it.");
         }
     }
@@ -250,9 +250,9 @@ public class PasswordResetService {
         }
         audit.record("PASSWORD_RESET_SELF", user.getEmail(), null);
 
-        email.sendEmail(user.getEmail(), "Your DK/Phar password was changed",
+        email.sendEmail(user.getEmail(), "Your DP DrukBazaars password was changed",
                 "Hello " + user.getName() + ",\n\nYour password was just changed with a reset code or link, and you were signed out everywhere.\n\n"
-                        + "If this was not you, contact us straight away.\n\nDK/Phar");
+                        + "If this was not you, contact us straight away.\n\nDP DrukBazaars");
         return user.getEmail();
     }
 

@@ -398,7 +398,7 @@ public class OrderBoardService {
             return new Item(
                     pkg == null ? "o" + o.getOrderId() : "p" + pkg.getId(), stage, o.getOrderId(), pkg == null ? null : pkg.getId(), no, count, legacy,
                     o.getCustomerName(), o.getCustomerPhone(), o.getCustomerEmail(), pkg != null && pkg.getDropAddress() != null ? pkg.getDropAddress() : o.getAddress(),
-                    pkg == null ? null : pkg.getSellerId(), pkg == null ? null : seller == null ? "DK/Phar" : seller.getShopName(),
+                    pkg == null ? null : pkg.getSellerId(), pkg == null ? null : seller == null ? "DP DrukBazaars" : seller.getShopName(),
                     seller == null ? null : seller.getPhone(), pkg == null ? null : pkg.getPickupAddress(),
                     shown, itemCount, amount, o.getTotalAmount(),
                     o.getPaymentStatus(), payment == null ? null : payment.getPaymentMethod(), journal, note,

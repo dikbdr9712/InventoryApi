@@ -1,5 +1,5 @@
 -- =====================================================================================
--- DK/Phar Inventory: step 1 on a NEW server (run once, as the MySQL root user).
+-- DP DrukBazaars: step 1 on a NEW server (run once, as the MySQL root user).
 --
 -- Creates the empty database and the account the application uses to reach it.
 -- The application builds every table by itself the first time it starts (Flyway runs

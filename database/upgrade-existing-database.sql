@@ -1,5 +1,5 @@
 -- =====================================================================================
--- DK/Phar Inventory: bring a database made BEFORE 2 Oct 2026 up to database version 1.
+-- DP DrukBazaars: bring a database made BEFORE 2 Oct 2026 up to database version 1.
 --
 -- Who needs it: a database the application created by itself before Flyway was added
 -- (for example the current inventorydb on the development computer). A NEW server does

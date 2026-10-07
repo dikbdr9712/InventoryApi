@@ -128,7 +128,7 @@ public class BankPaymentService {
             }
             if (bp.getGatewayTransactionId() == null) {
                 bp.setGatewayTransactionId(client.start(intent.getReference(), intent.getAmount(),
-                        "DK/Phar order " + intent.getOrderId(), intent.getCustomerEmail()));
+                        "DP DrukBazaars order " + intent.getOrderId(), intent.getCustomerEmail()));
                 record(intent.getReference(), "STARTED", "OK", "Gateway transaction " + bp.getGatewayTransactionId());
             }
             bp.setBankCode(bank.code());

@@ -1,5 +1,5 @@
 # =====================================================================================
-# DK/Phar Inventory: backup on Windows (the development computer, or a Windows server).
+# DP DrukBazaars: backup on Windows (the development computer, or a Windows server).
 #
 # Saves the database and the uploaded files into D:\dkphar-backups (change $BackupDir below)
 # and keeps the last 14 days. Run it by hand, or every night with Task Scheduler:

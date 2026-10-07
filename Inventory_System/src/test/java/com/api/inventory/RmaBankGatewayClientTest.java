@@ -20,7 +20,7 @@ import java.util.function.Function;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * The real RMA connector against a pretend RMA gateway: the messages, their signatures (checked with DK/Phar's public
+ * The real RMA connector against a pretend RMA gateway: the messages, their signatures (checked with DP DrukBazaars' public
  * key, as RMA does), RMA's signed answers, the bank's journal number, and what happens when an answer is missing or
  * forged. No network, no Spring.
  */
@@ -49,7 +49,7 @@ class RmaBankGatewayClientTest {
     private Map<String, String> post(URI url, Map<String, String> fields) throws IOException {
         received.add(new LinkedHashMap<>(fields));
         assertTrue(RmaBankGatewayClient.verify(fields, fields.get("bfs_checkSum"), merchant.getPublic()),
-                "every message is signed with DK/Phar's key");
+                "every message is signed with DP DrukBazaars' key");
         Map<String, String> answer = rmaAnswers.apply(fields);
         if (answer == null) {
             throw new IOException("connection reset");
@@ -79,7 +79,7 @@ class RmaBankGatewayClientTest {
     @Test
     void aPaymentGoesThroughWithTheBanksJournalNumber() {
         assertFalse(client.testMode());
-        String txn = client.start("PI-AB12CD34EF56", new BigDecimal("1350.5"), "DK/Phar order 1042", "karma@example.bt");
+        String txn = client.start("PI-AB12CD34EF56", new BigDecimal("1350.5"), "DP DrukBazaars order 1042", "karma@example.bt");
         assertEquals("RMA7788990011", txn);
         Map<String, String> ar = received.get(0);
         assertEquals("AR", ar.get("bfs_msgType"));

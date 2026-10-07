@@ -1,9 +1,9 @@
-# DK/Phar Inventory API as a Linux service (systemd).
+# DP DrukBazaars API as a Linux service (systemd).
 #   sudo cp deploy/dkphar.service /etc/systemd/system/
 #   sudo systemctl daemon-reload && sudo systemctl enable --now dkphar
 #   journalctl -u dkphar -f        (the log)
 [Unit]
-Description=DK/Phar Inventory API
+Description=DP DrukBazaars API
 After=network.target mysql.service
 Wants=mysql.service
 

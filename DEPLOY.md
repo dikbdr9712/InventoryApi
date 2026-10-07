@@ -1,4 +1,4 @@
-# DK/Phar Inventory: putting it on a live server
+# DP DrukBazaars: putting it on a live server
 
 > Free hosting (Render + Aiven, no own server): see **DEPLOY-RENDER.md**. This file is for your own Linux server.
 
@@ -110,9 +110,9 @@ Then **make the first admin**: `database/README.md`, steps 5 and 6.
 - **Backups**: set up `database/backup.sh` (instructions inside) and copy the backups off the server.
 - **Email**: send yourself a password reset from the sign-in page to check the email settings.
 - **Payments from a bank account (real money)**: the connection to the RMA Payment Gateway is built
-  (`RmaBankGatewayClient`). It needs DK/Phar's merchant registration with RMA. Steps:
-  1. Register DK/Phar as a merchant (beneficiary) with the RMA Payment Gateway. RMA gives: a merchant id,
-     the test (UAT) and live addresses, its public key / certificate, and asks for (or gives) DK/Phar's key pair.
+  (`RmaBankGatewayClient`). It needs DP DrukBazaars' merchant registration with RMA. Steps:
+  1. Register DP DrukBazaars as a merchant (beneficiary) with the RMA Payment Gateway. RMA gives: a merchant id,
+     the test (UAT) and live addresses, its public key / certificate, and asks for (or gives) DP DrukBazaars' key pair.
      It may ask for the server's IP address.
   2. Put the private key on the server, readable only by the app: `/etc/dkphar/rma-merchant.pem` (PEM, PKCS#8;
      an old "BEGIN RSA PRIVATE KEY" file is converted once with

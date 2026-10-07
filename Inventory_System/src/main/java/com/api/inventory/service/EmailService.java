@@ -35,7 +35,7 @@ public class EmailService {
     @Value("${app.mail.enabled:false}")
     private boolean enabled;
 
-    @Value("${app.mail.from:DK/Phar <no-reply@dkphar.bt>}")
+    @Value("${app.mail.from:DP DrukBazaars <no-reply@drukbazaars.bt>}")
     private String from;
 
     /** Write the body of unsent emails to the log (handy on a developer's computer; false on a server). */

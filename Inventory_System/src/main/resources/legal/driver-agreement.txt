@@ -1,6 +1,6 @@
 # Delivery Driver Agreement
 
-This agreement is between you (the "Driver") and DK/Phar Inventory Management System ("DK/Phar", "we", "us"). You deliver packages from sellers and from our shop to customers, and choose which jobs you take. By ticking "I agree" and sending your application you accept this agreement.
+This agreement is between you (the "Driver") and DP DrukBazaars ("we", "us"). You deliver packages from sellers and from our shop to customers, and choose which jobs you take. By ticking "I agree" and sending your application you accept this agreement.
 
 ## 1. Who can deliver
 - You are at least 18 years old.
@@ -33,7 +33,7 @@ This agreement is between you (the "Driver") and DK/Phar Inventory Management Sy
 - You may stop at any time by contacting us, after finishing or giving back the jobs you hold. We pay any balance we owe you.
 
 ## 7. Information we keep
-- We keep your details, documents and delivery records to run deliveries, pay you and meet the law. Only DK/Phar staff who need them can see your documents.
+- We keep your details, documents and delivery records to run deliveries, pay you and meet the law. Only DP DrukBazaars staff who need them can see your documents.
 
 ## 8. Changes to this agreement
 - We may update this agreement. We will show you the new version in your dashboard, and you must accept it to keep taking jobs. Each version is kept, so you can always see what you agreed to.
@@ -42,4 +42,4 @@ This agreement is between you (the "Driver") and DK/Phar Inventory Management Sy
 - This agreement follows the laws of the Kingdom of Bhutan. We will first try to settle any disagreement by talking with you in good faith.
 
 ## Contact
-DK/Phar Inventory Management System, Thimphu, Bhutan. Phone 77269712, email dikbdrghalley12@gmail.com.
+DP DrukBazaars, Thimphu, Bhutan. Phone 77269712, email dikbdrghalley12@gmail.com.

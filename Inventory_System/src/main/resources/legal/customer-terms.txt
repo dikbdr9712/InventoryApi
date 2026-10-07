@@ -1,6 +1,6 @@
 # Terms of Use and Privacy
 
-These terms apply when you create an account and shop with DK/Phar Inventory Management System ("DK/Phar", "we", "us"). By creating an account you accept them.
+These terms apply when you create an account and shop with DP DrukBazaars ("we", "us"). By creating an account you accept them.
 
 ## 1. Your account
 - Give your real name, email and phone number, and keep your password secret. You are responsible for orders placed with your account.
@@ -22,7 +22,7 @@ These terms apply when you create an account and shop with DK/Phar Inventory Man
 ## 5. Your information (privacy)
 - We collect your name, email, phone number, delivery address and order history to run your account, deliver your orders, take payments and answer your messages.
 - We share your name, phone number and delivery address only with the seller and the driver who need them for your order. We do not sell your information.
-- Passwords are stored scrambled (hashed); nobody at DK/Phar can read them.
+- Passwords are stored scrambled (hashed); nobody at DP DrukBazaars can read them.
 - You can ask us to see, correct or delete your information, unless we must keep it by law (for example sales records for tax).
 
 ## 6. Fair use
@@ -35,4 +35,4 @@ These terms apply when you create an account and shop with DK/Phar Inventory Man
 - These terms follow the laws of the Kingdom of Bhutan.
 
 ## Contact
-DK/Phar Inventory Management System, Thimphu, Bhutan. Phone 77269712, email dikbdrghalley12@gmail.com.
+DP DrukBazaars, Thimphu, Bhutan. Phone 77269712, email dikbdrghalley12@gmail.com.

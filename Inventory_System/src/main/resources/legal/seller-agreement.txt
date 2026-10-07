@@ -1,6 +1,6 @@
 # Seller Agreement
 
-This agreement is between you (the "Seller") and DK/Phar Inventory Management System ("DK/Phar", "we", "us"), which runs the online shop where you list and sell your products. By ticking "I agree" and sending your application you accept this agreement.
+This agreement is between you (the "Seller") and DP DrukBazaars ("we", "us"), which runs the online shop where you list and sell your products. By ticking "I agree" and sending your application you accept this agreement.
 
 ## 1. Who can sell
 - You are at least 18 years old and allowed to run a business in Bhutan.
@@ -14,9 +14,9 @@ This agreement is between you (the "Seller") and DK/Phar Inventory Management Sy
 - We may hide or remove a product that breaks these rules, without notice.
 
 ## 3. Orders and packing
-- Customers pay DK/Phar before delivery. You will see an order under "To pack" only after the payment has been checked.
+- Customers pay DP DrukBazaars before delivery. You will see an order under "To pack" only after the payment has been checked.
 - You pack each order carefully, with exactly the items ordered, and mark it "Packed" promptly (within one working day unless agreed otherwise).
-- A DK/Phar driver collects the package from your pickup address. Hand packages only to the driver shown in your dashboard.
+- A DP DrukBazaars driver collects the package from your pickup address. Hand packages only to the driver shown in your dashboard.
 - If you cannot fulfil an order, tell us at once so we can cancel it and refund the customer.
 
 ## 4. Commission and payment
@@ -27,7 +27,7 @@ This agreement is between you (the "Seller") and DK/Phar Inventory Management Sy
 - You are responsible for your own taxes on your income, including any GST you must charge and declare.
 
 ## 5. Returns and complaints
-- You accept returns that follow the DK/Phar returns policy shown to customers, and you help us sort out complaints about your products quickly and politely.
+- You accept returns that follow the DP DrukBazaars returns policy shown to customers, and you help us sort out complaints about your products quickly and politely.
 
 ## 6. Customer information
 - You use customer names and details only to fulfil their orders. You do not contact customers for other purposes, sell or share their details, or keep them longer than needed.
@@ -37,7 +37,7 @@ This agreement is between you (the "Seller") and DK/Phar Inventory Management Sy
 - You may stop selling at any time by contacting us. Orders already paid must still be packed, and we pay any balance we owe you after open orders are finished.
 
 ## 8. Liability
-- DK/Phar provides the online shop, payment collection and delivery. We are not the maker of your products and are not responsible for their quality.
+- DP DrukBazaars provides the online shop, payment collection and delivery. We are not the maker of your products and are not responsible for their quality.
 - Neither side is responsible for delays caused by events outside its control (for example natural disasters, road closures or network failures).
 
 ## 9. Changes to this agreement
@@ -47,4 +47,4 @@ This agreement is between you (the "Seller") and DK/Phar Inventory Management Sy
 - This agreement follows the laws of the Kingdom of Bhutan. We will first try to settle any disagreement by talking with you in good faith.
 
 ## Contact
-DK/Phar Inventory Management System, Thimphu, Bhutan. Phone 77269712, email dikbdrghalley12@gmail.com.
+DP DrukBazaars, Thimphu, Bhutan. Phone 77269712, email dikbdrghalley12@gmail.com.

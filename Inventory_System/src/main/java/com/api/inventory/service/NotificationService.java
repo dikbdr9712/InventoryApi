@@ -183,7 +183,7 @@ public class NotificationService {
         if (note.link() != null && !note.link().isBlank()) {
             text.append("Open: ").append(trimSlash(publicUrl)).append(note.link()).append("\n\n");
         }
-        text.append("DK/Phar\n");
+        text.append("DP DrukBazaars\n");
         text.append("You get this email because of your account or order with us.");
         return text.toString();
     }

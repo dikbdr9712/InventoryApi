@@ -18,7 +18,7 @@ import java.util.List;
  * Two versions:
  *   TestBankGatewayClient  app.payments.bank.mode=test. No bank is contacted, no money moves, no text is sent;
  *                          the code is always 123456. For trying the screens. Refused on the live site.
- *   RmaBankGatewayClient   app.payments.bank.mode=rma. The RMA Payment Gateway, with DK/Phar's merchant id and key.
+ *   RmaBankGatewayClient   app.payments.bank.mode=rma. The RMA Payment Gateway, with DP DrukBazaars' merchant id and key.
  *
  * Implementations must never store or log the account number or the code.
  */

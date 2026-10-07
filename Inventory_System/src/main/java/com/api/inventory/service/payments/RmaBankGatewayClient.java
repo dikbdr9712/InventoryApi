@@ -43,7 +43,7 @@ import java.util.TreeMap;
 
 /**
  * The REAL connection to the RMA Payment Gateway (BFS Secure, the merchant API), app.payments.bank.mode=rma.
- * Money moves: the customer's bank debits the account and pays DK/Phar's merchant account.
+ * Money moves: the customer's bank debits the account and pays DP DrukBazaars' merchant account.
  *
  * Messages (form fields, answers come back as name=value pairs):
  *   AR  Authorisation Request  our order number + amount             -> AC with bfs_bfsTxnId (the gateway's transaction)
@@ -51,14 +51,14 @@ import java.util.TreeMap;
  *   DR  Debit Request          the OTP                               -> AC with bfs_debitAuthCode 00 and bfs_debitAuthNo
  *                                                                        (the bank's journal number for the debit)
  * Every message carries bfs_checkSum: the values of all the other bfs_ fields, sorted by field name and joined with
- * "|", signed SHA1withRSA with DK/Phar's private key, in upper-case hex. RMA's answers are checked the same way with
+ * "|", signed SHA1withRSA with DP DrukBazaars' private key, in upper-case hex. RMA's answers are checked the same way with
  * RMA's public key when it is configured.
  *
  * Settings (all from the merchant kit RMA gives after registration; see DEPLOY.md):
  *   app.payments.bank.rma.url                    the gateway address (RMA's test (UAT) address first, then the live one)
- *   app.payments.bank.rma.beneficiary-id         DK/Phar's merchant (beneficiary) id, bfs_benfId
+ *   app.payments.bank.rma.beneficiary-id         DP DrukBazaars' merchant (beneficiary) id, bfs_benfId
  *   app.payments.bank.rma.beneficiary-bank-code  bfs_benfBankCode (01 unless RMA says otherwise)
- *   app.payments.bank.rma.private-key            path to DK/Phar's private key (PEM, PKCS#8)
+ *   app.payments.bank.rma.private-key            path to DP DrukBazaars' private key (PEM, PKCS#8)
  *   app.payments.bank.rma.public-key             path to RMA's public key or certificate (PEM), to check answers
  *   app.payments.bank.banks                      the banks with RMA's bank ids
  * Field names and answer codes follow the BFS Secure merchant API; check them against the kit's message specification
@@ -109,7 +109,7 @@ public class RmaBankGatewayClient implements BankGatewayClient {
             throw new IllegalStateException("app.payments.bank.rma.url must be the RMA gateway's https:// address from the merchant kit.");
         }
         if (beneficiaryId == null || beneficiaryId.isBlank()) {
-            throw new IllegalStateException("app.payments.bank.rma.beneficiary-id is missing: DK/Phar's merchant id from RMA.");
+            throw new IllegalStateException("app.payments.bank.rma.beneficiary-id is missing: DP DrukBazaars' merchant id from RMA.");
         }
         if (banks.isEmpty()) {
             throw new IllegalStateException("app.payments.bank.banks is empty: list the banks with RMA's bank ids.");
@@ -320,7 +320,7 @@ public class RmaBankGatewayClient implements BankGatewayClient {
 
     static PrivateKey readPrivateKey(String path) {
         if (path == null || path.isBlank()) {
-            throw new IllegalStateException("app.payments.bank.rma.private-key is missing: the path to DK/Phar's private key (PEM).");
+            throw new IllegalStateException("app.payments.bank.rma.private-key is missing: the path to DP DrukBazaars' private key (PEM).");
         }
         try {
             String pem = Files.readString(Path.of(path.trim()));

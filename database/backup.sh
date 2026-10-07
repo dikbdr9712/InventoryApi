@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =====================================================================================
-# DK/Phar Inventory: nightly backup on a Linux server.
+# DP DrukBazaars: nightly backup on a Linux server.
 #
 # Saves the whole database plus the uploaded files (product photos, and the sellers' and
 # drivers' identity documents), and keeps the last 14 days. Run it every night from cron:

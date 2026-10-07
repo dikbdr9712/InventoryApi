@@ -1,4 +1,4 @@
-# DK/Phar Inventory: the database
+# DP DrukBazaars: the database
 
 MySQL 8.0 or newer. One database, `inventorydb`, in `utf8mb4`.
 

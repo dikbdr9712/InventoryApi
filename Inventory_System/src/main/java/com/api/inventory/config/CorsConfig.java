@@ -18,7 +18,7 @@ public class CorsConfig {
 
     /**
      * Which websites may call the API from a browser. On a server set APP_CORS_ALLOWED_ORIGINS, for example
-     * https://dkphar.bt,https://www.dkphar.bt (not needed when the site and the API share one address behind Nginx).
+     * https://drukbazaars.bt,https://www.drukbazaars.bt (not needed when the site and the API share one address behind Nginx).
      * The default covers a developer's computer: any local port, plus two local network addresses.
      */
     @Value("${app.cors.allowed-origins:http://localhost:[*],http://127.0.0.1:[*],http://192.168.123.30:4200,http://192.168.137.1:4200}")

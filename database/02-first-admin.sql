@@ -1,5 +1,5 @@
 -- =====================================================================================
--- DK/Phar Inventory: step 3 on a NEW server: make the first administrator.
+-- DP DrukBazaars: step 3 on a NEW server: make the first administrator.
 --
 -- A new database has no accounts. Nobody can be made admin from the website until there is
 -- one admin, so the first one is made here:

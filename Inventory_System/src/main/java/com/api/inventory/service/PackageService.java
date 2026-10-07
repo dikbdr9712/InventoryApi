@@ -257,7 +257,7 @@ public class PackageService {
         DeliverySize size = DeliverySize.of(saved.getDeliverySize());
         SellerProfile from = saved.getSellerId() == null ? null : sellers.findById(saved.getSellerId()).orElse(null);
         notify.ridersWhoCanCarry(size, new NotificationService.Note("NEW_JOB", "New delivery job: Nu. " + saved.getRiderPay(),
-                "Collect from " + (from == null ? "DK/Phar" : from.getShopName() + (from.getTown() == null ? "" : ", " + from.getTown()))
+                "Collect from " + (from == null ? "DP DrukBazaars" : from.getShopName() + (from.getTown() == null ? "" : ", " + from.getTown()))
                         + " · " + size.label + (saved.getDistanceKm() == null ? "" : " · " + saved.getDistanceKm().stripTrailingZeros().toPlainString() + " km")
                         + ". First come, first served.", "/rider"));
         return view(saved, staff ? Audience.STAFF : Audience.SELLER);
@@ -369,7 +369,7 @@ public class PackageService {
 
         SellerProfile from = p.getSellerId() == null ? null : sellers.findById(p.getSellerId()).orElse(null);
         notify.rider(rider.getId(), new NotificationService.Note("JOB_ASSIGNED", "New job for you: order #" + p.getOrderId(),
-                "Collect from " + (from == null ? "DK/Phar" : from.getShopName()) + " and deliver to " + p.getDropAddress()
+                "Collect from " + (from == null ? "DP DrukBazaars" : from.getShopName()) + " and deliver to " + p.getDropAddress()
                         + ". You earn Nu. " + p.getRiderPay() + ".", "/rider"), true);
         if (before != null) {
             notify.rider(before, new NotificationService.Note("JOB_MOVED", "Order #" + p.getOrderId() + " was given to another driver",
@@ -525,7 +525,7 @@ public class PackageService {
             notify.customer(order, new NotificationService.Note("ON_THE_WAY", "Your order #" + order.getOrderId() + " is on the way",
                     "Give the rider your delivery code " + p.getDeliveryCode() + " when you receive it. Do not share it before.",
                     "/orders/" + order.getOrderId()), true,
-                    "DK/Phar: order #" + order.getOrderId() + " is on the way. Give the rider code " + p.getDeliveryCode() + " at the door.");
+                    "DP DrukBazaars: order #" + order.getOrderId() + " is on the way. Give the rider code " + p.getDeliveryCode() + " at the door.");
         });
         if (p.getSellerId() != null) {
             notify.seller(p.getSellerId(), new NotificationService.Note("PICKED_UP", "Package for order #" + p.getOrderId() + " collected",
@@ -574,7 +574,7 @@ public class PackageService {
         }
         orders.findById(p.getOrderId()).ifPresent(order -> notify.customer(order, new NotificationService.Note("DELIVERED",
                 done ? "Order #" + order.getOrderId() + " delivered" : "Part of order #" + order.getOrderId() + " delivered",
-                "Thank you for shopping with DK/Phar." + (done ? " How was it? Rate the products and our service on your order page."
+                "Thank you for shopping with DP DrukBazaars." + (done ? " How was it? Rate the products and our service on your order page."
                         : " The rest comes in a separate package."),
                 "/orders/" + order.getOrderId()), true, null));
         if (p.getSellerId() != null && p.getSellerEarning().signum() > 0) {
@@ -668,7 +668,7 @@ public class PackageService {
 
         return new PackageView(
                 p.getId(), p.getOrderId(), p.getStatus(),
-                p.getSellerId(), seller == null ? "DK/Phar" : seller.getShopName(),
+                p.getSellerId(), seller == null ? "DP DrukBazaars" : seller.getShopName(),
                 who == Audience.SELLER || who == Audience.CUSTOMER ? null : (seller == null ? null : seller.getPhone()),
                 who == Audience.CUSTOMER ? null : p.getPickupAddress(),
                 seller == null ? null : seller.getTown(),
