@@ -268,6 +268,8 @@ Rules:
 - **Never change a migration that has run** (V1 to V16): Flyway checks them on every start and the server refuses to
   start. A change is always a new file, `V17__what_it_does.sql`.
 - Write migrations for MySQL 8 and check them on a scratch MySQL database before pushing (tests run on H2).
+- **Every table needs a primary key**: the hosted MySQL (Aiven) has `sql_require_primary_key` on and refuses a table
+  without one. Check with the JDBC URL ending `?sessionVariables=sql_require_primary_key=1` to behave like Aiven.
 - Times are stored in UTC; entities use `Instant`. Money is `DECIMAL`.
 - Data the app needs (roles, permissions, agreements, settings) is created by the app on start, not by hand.
 

@@ -811,3 +811,6 @@ and points to the docs. Keep the guides in step with the screens: change the doc
   coupon redemptions).
 - Tests: ShopListsTest, ShopCareTest, ShopOffersTest (photos in the test database: app.files.store=database). 61 in all.
   V13-V16 checked on a scratch MySQL database. Browser checked with fake data for every screen.
+- V14 first failed on Aiven (return_request_items had no primary key; Aiven requires one): fixed with
+  primary key (request_id, order_item_id); the partial tables and the failed history row were removed with SQL, then
+  V14-V16 ran on the next deploy. Rehearsed on a scratch database with sql_require_primary_key on.

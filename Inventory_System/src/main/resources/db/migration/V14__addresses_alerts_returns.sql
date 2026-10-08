@@ -8,6 +8,7 @@
 -- return_requests       a customer asks to return items of a completed order (within the return window):
 -- return_request_items  REQUESTED -> APPROVED or DECLINED by staff -> DONE when staff record the return.
 --
+-- Every table has a primary key: the hosted MySQL (Aiven) refuses tables without one (sql_require_primary_key).
 -- All by email, like reviews, so an admin changing a person's email moves them along.
 -- Flyway applies this by itself on the next start. Nothing has to be loaded.
 -- =====================================================================================
@@ -64,7 +65,8 @@ create table return_request_items (
     item_id bigint not null,
     order_item_id bigint not null,
     request_id bigint not null,
-    item_name varchar(255) not null
+    item_name varchar(255) not null,
+    primary key (request_id, order_item_id) -- one line per product of the order (hosted MySQL requires a primary key)
 ) engine=InnoDB;
 
 alter table return_request_items add constraint fk_return_request_items_request foreign key (request_id) references return_requests (id);
