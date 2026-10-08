@@ -186,6 +186,10 @@ our products**, and sales by channel (counter and online). Marketplace sellers' 
 
 ## 3.8 Good habits
 
+- On the counter computer or a tablet, install the website as an app (**Get the app** in the footer): it opens in
+  its own window, without the browser's bars, and can be pinned to the taskbar. Packers and managers can do the same
+  for the order board on their phones.
+- If the app shows **A new version is ready**, finish the sale in progress, then tap **Update now**.
 - Sign out on shared computers.
 - Never give your password to anyone; the admin can always reset it.
 - Use **Give back** when you cannot finish a package, so it does not sit with your name on it.

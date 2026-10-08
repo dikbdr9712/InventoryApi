@@ -167,6 +167,23 @@ Package `com.api.inventory`:
 - **Styles**: design tokens in `src/theme.css` (`--green`, `--saffron`, `--ink`, ...). Do not reuse Bootstrap class
   names (`row`, `card`, `toast`, ...) for your own styles.
 - **The app is zoneless**: change a signal, not a plain field, when the screen must update after a server answer.
+- **Installable app (PWA)**: `public/manifest.webmanifest` (name, colours, icons in `public/icons`, shortcuts),
+  Angular's service worker (`@angular/service-worker`, `ngsw-config.json`, on in the production build only:
+  `provideServiceWorker` in `app.config.ts`, `serviceWorker` in `angular.json`).
+  - It keeps only the website's own files: index, main and styles up front (about 300 KB), other pages, pictures and
+    icons once used. API answers are never kept: `/api/**` and `/uploads/**` are left out of the navigation
+    URLs and there are no data groups.
+  - Updates: `services/app-install.ts` checks when the app returns to the screen and every 30 minutes. On
+    VERSION_READY the next page change loads the new version in full; the bottom banner offers **Update now** for
+    pages kept open (POS, order board). An unrecoverable state reloads.
+  - Install: the same service keeps the browser's `beforeinstallprompt`; `Components/app-banner` (phones,
+    "Not now" = 30 days quiet, hidden at checkout, POS and staff pages) and `Components/get-app` (`/app`, steps
+    per device) use it.
+  - `utils/page-load.ts` (`withNavigationErrorHandler`): a page whose code cannot be downloaded (offline, or
+    replaced by a new version) loads the new version once, otherwise shows a message (and the home page if the app
+    was just opened).
+  - `ng serve` changes index.html, so the service worker cannot be tried there: build, then use the preview
+    configuration `built-site` (`.claude/serve-dist.mjs`, the build served like Render does).
 
 Main routes:
 
@@ -175,6 +192,7 @@ Main routes:
 | `/`, `/products`, `/products/:id`, `/about`, `/services`, `/reviews`, `/contact`, `/terms`, `/terms/:type` | Public pages | Everyone |
 | `/login`, `/signup`, `/forgot-password`, `/reset-password` | Accounts | Everyone |
 | `/sell`, `/deliver` | Apply as seller or driver | Everyone (sign in to apply) |
+| `/app` | Get the app (install steps) | Everyone |
 | `/cart` | Cart and checkout | Everyone (sign in to pay) |
 | `/payment`, `/pay/bank`, `/payment/result`, `/order-success` | Paying | Signed in |
 | `/orders`, `/orders/:id`, `/receipt/:orderId`, `/profile` | My orders, receipt, profile | Signed in |
@@ -410,7 +428,8 @@ emails and texts are caught by the tests.
 - **Server**: `Inventory_System/Dockerfile` builds with Maven (Temurin 26) and runs the jar as a non-root user with
   the `prod` profile, memory capped for a 512 MB machine and the Bhutan time zone. Render builds it on every push.
 - **Website**: `npm run build` → `dist/inventory-project/browser`, published as a Render static site with the rewrites
-  `/api/*` and `/uploads/*` → the server, and `/*` → `/index.html`.
+  `/api/*` and `/uploads/*` → the server, and `/*` → `/index.html`. The build also writes the app files
+  (`ngsw-worker.js`, `ngsw.json`, `manifest.webmanifest`); Render serves them as they are, nothing to set up.
 - Step by step: [DEPLOY-RENDER.md](../DEPLOY-RENDER.md) (free hosting) and [DEPLOY.md](../DEPLOY.md) (own server).
 
 ## 14. How we work

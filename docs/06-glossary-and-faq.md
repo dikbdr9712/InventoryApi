@@ -6,6 +6,7 @@
 |---|---|
 | **Admin** | The owner or a person who runs the whole system. Always has every shop permission. |
 | **Agreement** | The Terms of Use and Privacy (customers), the Seller Agreement or the Driver Agreement. Each has versions; people accept the current one. |
+| **App** | DP DrukBazaars installed from the website on a phone or computer (a progressive web app): its own icon and window, the same shop and account. |
 | **Audit / Activity log** | The list of sensitive actions: who did what and when. In People & access > Activity. |
 | **Batch** | One delivery of a product's stock, with its own cost, batch number, expiry date and supplier. |
 | **Cash drawer (shift)** | A cashier's till from opening (with the float) to closing (with the count). |
@@ -83,6 +84,8 @@
   is right and that your phone number is registered with your bank.
 - **Where is my delivery code?** On your order page while the package is on its way (and by SMS when text messages
   are on).
+- **Is there an app?** Yes, installed from the website: **Get the app** in the menu or footer shows the steps for
+  Android, iPhone and computers. No app store is needed.
 - **Can I collect my order myself?** Yes: choose **Pick up myself** at checkout. There is no delivery fee. You are told
   when it is ready, where to go, and your collection code.
 - **Can I pay cash on delivery?** No. Online orders are paid before delivery, so drivers never carry cash.

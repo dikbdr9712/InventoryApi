@@ -159,6 +159,26 @@ The fee is rounded up to the next Nu. 5.
 - **Team**: **Add a person** (name, role, a short introduction, photo), **Edit**, **Hide** / **Show**, move up or down,
   remove. Changes show on the website at once.
 
+### The app
+
+The website is also an installable app (a "progressive web app"): customers, sellers, drivers and staff install it
+from the website (**Get the app**, `/app`). There is nothing to set up and nothing to pay. Each website update
+reaches the app by itself.
+
+- Share the link `https://<your website>/app` (on social media, on a poster with a QR code) so people find the steps.
+- The icon is made from the shop logo (`public/icons` in the website project). To change it, replace those
+  pictures (keep the same names and sizes) and push.
+
+**In Google Play (later)**: once the website has its own domain, the same app can be listed in Google Play:
+1. Create a Google Play developer account (a one-time fee of US$25).
+2. Open [pwabuilder.com](https://www.pwabuilder.com), type the website's address, choose **Package for stores >
+   Android**, and download the package (keep its signing key safe; every update needs it).
+3. Put the `assetlinks.json` file it gives you on the website at `/.well-known/assetlinks.json` (it proves the
+   app and the website belong together), then upload the package in the Play Console.
+
+**In Apple's App Store**: Apple asks US$99 a year and a Mac to build the app, and refuses apps that only show a
+website. iPhone users install from Safari instead (above).
+
 ## 6. Payments
 
 Online orders are paid from the customer's bank account through the **RMA Payment Gateway**.

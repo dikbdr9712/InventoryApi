@@ -754,3 +754,33 @@ and points to the docs. Keep the guides in step with the screens: change the doc
   customers.phone, audit USER_DETAILS_CHANGED (old -> new), emails both addresses, signs them out on a new email.
   Not on yourself; admins and people managers only by an admin.
 - Tests: PickupFlowTest (own H2 database), AccountDetailsTest. 51 in all. V12 checked on a scratch MySQL database.
+
+## 37. The website as an installable app (8 Oct 2026)
+- A progressive web app: public/manifest.webmanifest (DP DrukBazaars / DrukBazaars, green #0b6b4f, standalone,
+  shortcuts My orders, Cart, Products) and icons in public/icons made from the logo (192/512, maskable 192/512 on
+  green, apple-touch-icon 180). index.html links them (plus the iOS meta tags).
+- Angular service worker (@angular/service-worker 22.1.6, pinned to the Angular version; ngsw-config.json; production
+  build only). Up front: index, main, styles, manifest (about 300 KB); other pages and pictures once used. API answers
+  are never kept (/api and /uploads are not navigation URLs, no data groups). Default "performance" start: the app
+  opens from the phone's copy.
+- services/app-install.ts: install prompt (beforeinstallprompt), installed (display-mode standalone), new versions:
+  VERSION_READY -> the next page change does a full load (nothing typed is lost); Components/app-banner shows
+  "Update now" for long-open pages, and on phones "Get the DP DrukBazaars app" (Install / How; Not now = 30 days;
+  hidden at checkout, POS, staff pages). Checks on visibility and every 30 minutes; unrecoverable -> reload.
+- /app page (Components/get-app): Install button, steps for Android, iPhone/iPad, computer. "Get the app" in the phone
+  menu and the footer.
+- utils/page-load.ts (withNavigationErrorHandler): a page chunk that cannot be downloaded (offline, or deleted by a
+  new deploy) loads the new version once, otherwise "No internet connection" / "could not be opened" (and the home
+  page when it was the first page). This also fixes old tabs breaking after a deploy (Render's /* rewrite answers a
+  deleted chunk with index.html).
+- Tried on the built site (preview "built-site", .claude/serve-dist.mjs): installs, works from the phone's copy with
+  the server stopped, finds a new version and switches on the next link, Android install prompt, Not now.
+- Google Play later (needs the own domain): PWABuilder package + /.well-known/assetlinks.json, US$25 once. Apple App
+  Store not planned (US$99/year, a Mac, website-only apps refused); iPhone users add it from Safari.
+
+## 38. The logo's words (8 Oct 2026)
+- The logo said "100% ORGANIC" / "100% NATURAL" and རང་བཞིན་ཐོན་སྐྱེད། (natural products) from the old shop. Now: "DP DRUKBAZAARS"
+  (top arc), "ONLINE SHOPPING" (bottom arc) in Poppins SemiBold, and འབྲུག་ཚོང་ལམ།། in Jomolhari (a Bhutanese Uchen font),
+  in the logo's own yellow. The rest of the logo (ring, ornaments, leaves) is unchanged.
+- Made from public/Images/website-logo.png (also the unused copy "Websites logo(Online).png"): logo-112.png (header,
+  footer, sign-in, counter, receipts), favicon.ico (16/32/48) and the app icons in public/icons.

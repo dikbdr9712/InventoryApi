@@ -177,6 +177,25 @@ current password, then the new one twice).
 The Terms of Use and Privacy are in the footer (**Terms & Privacy**). When a new version is published you are asked
 to read and accept it.
 
+### A15. Get the app
+
+DP DrukBazaars can be installed as an app, straight from the website. It is free, needs no app store, and uses almost
+no space. It is the same shop: the same account, cart, orders and notifications.
+
+- **Android**: open the website in Chrome. Tap **Install** on the banner at the bottom (or menu **⋮ > Install app**).
+- **iPhone and iPad**: open the website in Safari. Tap **Share**, then **Add to Home Screen**, then **Add**.
+- **Computer**: in Chrome or Edge, click the install icon in the address bar.
+
+**Get the app** in the menu (phones) and in the footer opens a page with these steps for your device
+(`/app`; you can share that link).
+
+Good to know:
+- New versions arrive by themselves. The app switches to the new version when you open another page; if it says
+  **A new version is ready**, tap **Update now**.
+- The app opens fast because it keeps its pages on your phone. Ordering, paying and following orders need the
+  internet. Without it, a page you have not opened before says **No internet connection**.
+- To remove it, press and hold the icon and choose Remove or Uninstall.
+
 ---
 
 ## Part B: Sellers

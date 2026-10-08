@@ -60,6 +60,8 @@ flowchart LR
 - A cart, a delivery fee worked out from the size of the products and the distance, and checkout.
 - Pay from a bank account with a one-time code sent by the bank to the customer's phone.
 - Follow the order step by step, see the driver, get the delivery code, download or print the receipt.
+- Install DP DrukBazaars as an **app** on the phone or computer, straight from the website (no app store): see the
+  User guide, A15.
 - Rate each product, the service and the delivery.
 - Notifications (the bell at the top), forgotten password by email or text message, change password.
 
