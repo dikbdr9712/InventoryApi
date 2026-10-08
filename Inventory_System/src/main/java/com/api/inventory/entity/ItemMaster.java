@@ -83,6 +83,25 @@ public class ItemMaster {
     /** How big it is to deliver: SMALL, MEDIUM, LARGE or BULKY (see DeliverySize). Empty = small. */
     @Column(name = "delivery_size", length = 10)
     private String deliverySize;
+
+    /** DEAL or FEATURED: shown on the home page. Empty = not. Set by staff with "Run offers". */
+    @Column(name = "highlight", length = 10)
+    private String highlight;
+
+    /** A deal stops showing after this (empty = until changed). */
+    @Column(name = "deal_ends_at")
+    private Instant dealEndsAt;
+
+    /** This product is an option (a size, a colour) of that main product. Empty = a product of its own (or a main one). */
+    @Column(name = "variant_of")
+    private Long variantOf;
+
+    /** The option's short name on the product page: "Size M", "Red". */
+    @Column(name = "variant_name", length = 60)
+    private String variantName;
+
+    public static final String DEAL = "DEAL";
+    public static final String FEATURED = "FEATURED";
 	public Long getItemId() {
 		return itemId;
 	}

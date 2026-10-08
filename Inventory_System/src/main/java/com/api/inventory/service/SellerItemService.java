@@ -51,6 +51,18 @@ public class SellerItemService {
         this.photos = photos;
     }
 
+    private ProductOptions options;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void setOptions(ProductOptions options) {
+        this.options = options;
+    }
+
+    /** The seller's own product, or AccessDeniedException (for photos and other seller actions). */
+    public ItemMaster ownProduct(SellerProfile seller, Long itemId) {
+        return own(seller, itemId);
+    }
+
     public SellerItemService(ItemMasterRepository items, InventoryStockRepository stock, TransactionRepository transactions) {
         this.items = items;
         this.stock = stock;
@@ -68,6 +80,8 @@ public class SellerItemService {
         private Integer quantity;
         private Boolean isActive;
         private String deliverySize;
+        private Long variantOf;      // a size/colour of this main product (one of the seller's own)
+        private String variantName;  // "Size M", "Red"
 
         public String getItemName() { return itemName; }
         public void setItemName(String itemName) { this.itemName = itemName; }
@@ -87,6 +101,10 @@ public class SellerItemService {
         public void setIsActive(Boolean isActive) { this.isActive = isActive; }
         public String getDeliverySize() { return deliverySize; }
         public void setDeliverySize(String deliverySize) { this.deliverySize = deliverySize; }
+        public Long getVariantOf() { return variantOf; }
+        public void setVariantOf(Long variantOf) { this.variantOf = variantOf; }
+        public String getVariantName() { return variantName; }
+        public void setVariantName(String variantName) { this.variantName = variantName; }
     }
 
     public List<ItemMasterDTO> list(SellerProfile seller) {
@@ -98,6 +116,7 @@ public class SellerItemService {
         ItemMaster item = new ItemMaster();
         apply(item, form);
         item.setSellerId(seller.getId());
+        options.apply(item, form.getVariantOf(), form.getVariantName());
         item.setCostPrice(BigDecimal.ZERO);
         item.setTaxRate(BigDecimal.ZERO);
         item.setDiscountAllowed(false);
@@ -123,6 +142,7 @@ public class SellerItemService {
     public ItemMasterDTO update(SellerProfile seller, Long itemId, SellerItemForm form, MultipartFile image) {
         ItemMaster item = own(seller, itemId);
         apply(item, form);
+        options.apply(item, form.getVariantOf(), form.getVariantName());
         if (form.getIsActive() != null) {
             item.setIsActive(form.getIsActive());
         }
@@ -213,6 +233,8 @@ public class SellerItemService {
         dto.setImagePath(item.getImagePath());
         dto.setIsActive(item.getIsActive());
         dto.setCreatedAt(item.getCreatedAt());
+        dto.setVariantOf(item.getVariantOf());
+        dto.setVariantName(item.getVariantName());
         dto.setSellerId(seller.getId());
         dto.setDeliverySize(com.api.inventory.entity.DeliverySize.of(item.getDeliverySize()).name());
         dto.setSellerName(seller.getShopName());

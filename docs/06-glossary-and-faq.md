@@ -11,8 +11,10 @@
 | **Batch** | One delivery of a product's stock, with its own cost, batch number, expiry date and supplier. |
 | **Cash drawer (shift)** | A cashier's till from opening (with the float) to closing (with the count). |
 | **Collection code** | The same 4 digits as the delivery code, for an order the customer picks up: shown to the seller or staff when collecting. |
+| **Coupon code** | A code (DRUK10) for money off the items of an online order, with its own limits. |
 | **Commission** | The part of a seller's sale DP DrukBazaars keeps, as a percentage. |
 | **Credit note** | The printed proof of a return and its refund. |
+| **Deal** | A product staff put under "Today's deals" on the home page, until a time. |
 | **Delivery code** | The 4-digit code a customer gives the driver at the door. It proves the package reached the right person. |
 | **Delivery size** | Small (any driver), medium (motorbike), large (car), bulky (pickup truck). Decides the delivery fee and which drivers can take the job. |
 | **FEFO** | First expired, first out: the batch that expires first is sold first. |
@@ -35,6 +37,8 @@
 | **RMA Payment Gateway** | The Royal Monetary Authority of Bhutan's service that moves money from customers' bank accounts to the shop. |
 | **Role** | Admin, Manager, Controller, Seller, Driver, Customer, or a role the admin made (for example Cashier). |
 | **Test mode** | Payments that only pretend: no bank is contacted and no money moves. The pages say so. |
+| **Option (size, colour)** | A product sold in sizes or colours: each one is its own product, shown together with the choices. |
+| **Wishlist** | Products a customer saved for later with the heart. |
 | **Write-off** | Taking stock out because it is broken, lost or expired, with a reason. |
 
 ## 6.2 What each status means
@@ -88,6 +92,9 @@
   Android, iPhone and computers. No app store is needed.
 - **Can I collect my order myself?** Yes: choose **Pick up myself** at checkout. There is no delivery fee. You are told
   when it is ready, where to go, and your collection code.
+- **How do I return something?** Open the order (once it has all reached you, within 7 days) and tap **Request a return**.
+- **Where do I put a coupon code?** In the cart, under the order summary: **Apply**.
+- **A product is sold out.** Tap **Notify me when it is back**: you are told once when it is in stock.
 - **Can I pay cash on delivery?** No. Online orders are paid before delivery, so drivers never carry cash.
 - **Why is the delivery fee different for two products?** It depends on the size of the products and the distance,
   and each seller sends their own package.

@@ -75,6 +75,13 @@ public class Order {
     @Column(name = "delivery_fee", precision = 12, scale = 2)
     private BigDecimal deliveryFee;
 
+    /** The coupon code the order used (empty = none), and what it took off the items (the total is after it). */
+    @Column(name = "coupon_code", length = 30)
+    private String couponCode;
+
+    @Column(name = "coupon_discount", precision = 12, scale = 2)
+    private BigDecimal couponDiscount;
+
     /** DELIVERY: a driver brings it. PICKUP: the customer collects it (no delivery fee). */
     @Column(nullable = false, length = 10)
     private String fulfilment = DELIVERY;

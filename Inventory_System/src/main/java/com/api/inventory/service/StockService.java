@@ -67,6 +67,30 @@ public class StockService implements ApplicationRunner {
     private org.springframework.transaction.support.TransactionTemplate tx;
     private com.api.inventory.repository.SellerProfileRepository sellers;
 
+    private org.springframework.context.ApplicationEventPublisher events;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void setEvents(org.springframework.context.ApplicationEventPublisher events) {
+        this.events = events;
+    }
+
+    /** A product's stock went from nothing to some: "Notify me" alerts go out (StockAlertService). */
+    public record BackInStock(Long itemId) {
+    }
+
+    /** Tells the waiting customers when this change brought a sold-out product back. */
+    private void announceIfBack(Long itemId, int before) {
+        Integer now = stock.quantityNow(itemId);
+        if (events != null && before <= 0 && now != null && now > 0) {
+            events.publishEvent(new BackInStock(itemId));
+        }
+    }
+
+    private int quantityBefore(Long itemId) {
+        Integer q = stock.quantityNow(itemId);
+        return q == null ? 0 : q;
+    }
+
     @org.springframework.beans.factory.annotation.Autowired
     void setSellers(com.api.inventory.repository.SellerProfileRepository sellers) {
         this.sellers = sellers;
@@ -111,6 +135,7 @@ public class StockService implements ApplicationRunner {
             throw new IllegalStateException("This batch expired on " + expiryDate + ". Expired stock cannot be put on sale.");
         }
         ensureStockRow(itemId);
+        int before = quantityBefore(itemId);
         StockBatch b = new StockBatch();
         b.setItemId(itemId);
         b.setBatchNo(clean(batchNo, 60));
@@ -126,6 +151,7 @@ public class StockService implements ApplicationRunner {
         StockBatch saved = batches.save(b);
         stock.adjustStockByDelta(itemId, quantity);
         stock.refreshStatus(itemId, LocalDateTime.now());
+        announceIfBack(itemId, before);
         return saved;
     }
 
@@ -215,6 +241,7 @@ public class StockService implements ApplicationRunner {
             return;
         }
         int left = quantity;
+        int before = quantityBefore(itemId);
         LocalDate today = today();
         if (orderItemId != null) {
             for (OrderItemBatch a : allocations.findByOrderItemIdOrderByIdDesc(orderItemId)) {
@@ -241,6 +268,7 @@ public class StockService implements ApplicationRunner {
         }
         expireDueFor(itemId);
         stock.refreshStatus(itemId, LocalDateTime.now());
+        announceIfBack(itemId, before);
     }
 
     /** A stock count: there are exactly newQuantity now. More = a new batch at unitCost (empty = last cost). */

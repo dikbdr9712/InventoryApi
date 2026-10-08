@@ -68,7 +68,7 @@ public class SalesReturnService {
 
     /** deliveryFee: online orders only (never refunded: the delivery took place). */
     private record OrderRow(Long orderId, String status, BigDecimal total, BigDecimal tax, BigDecimal deliveryFee,
-                            LocalDateTime createdAt, String customerName) {
+                            LocalDateTime createdAt, String customerName, BigDecimal coupon) {
         /** What the customer paid for the items themselves (with tax), the most that can ever be refunded. */
         BigDecimal itemsPaid() {
             return total.subtract(deliveryFee);
@@ -94,6 +94,17 @@ public class SalesReturnService {
     private LedgerEntryRepository ledger;
     private SellerProfileRepository sellers;
     private NotificationService notify;
+
+    private org.springframework.context.ApplicationEventPublisher events;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void setEvents(org.springframework.context.ApplicationEventPublisher events) {
+        this.events = events;
+    }
+
+    /** A return was recorded for an order: the customer's return request for it is done (ReturnRequestService). */
+    public record ReturnRecorded(Long orderId, BigDecimal refundAmount, String refundMethod) {
+    }
 
     @org.springframework.beans.factory.annotation.Autowired
     void setStockService(StockService stockService) {
@@ -131,10 +142,11 @@ public class SalesReturnService {
             }
         }
 
+        BigDecimal share = problem == null ? paidShare(order, lines, rate) : BigDecimal.ONE;
         List<ReturnableLine> view = new ArrayList<>();
         for (LineRow line : lines) {
             long returned = returnItems.totalReturnedFor(line.orderItemId());
-            BigDecimal unitRefund = problem == null ? refundPerUnit(line, rate) : BigDecimal.ZERO;
+            BigDecimal unitRefund = problem == null ? refundPerUnit(line, rate, share) : BigDecimal.ZERO;
             view.add(new ReturnableLine(line.orderItemId(), line.itemId(), line.quantity(), returned,
                     Math.max(0, line.quantity() - returned), unitRefund));
         }
@@ -181,6 +193,7 @@ public class SalesReturnService {
             throw new ReturnException(HttpStatus.CONFLICT, problem);
         }
         BigDecimal rate = taxRate(order, lines);
+        BigDecimal share = paidShare(order, lines, rate);
 
         // 3. check every requested line against what is left to return
         Set<Long> seen = new HashSet<>();
@@ -205,7 +218,7 @@ public class SalesReturnService {
                         : "Only " + left + " of that item can still be returned.");
             }
 
-            BigDecimal unitRefund = refundPerUnit(line, rate);
+            BigDecimal unitRefund = refundPerUnit(line, rate, share);
             total = total.add(unitRefund.multiply(BigDecimal.valueOf(asked.quantity())));
 
             SalesReturnItem item = new SalesReturnItem();
@@ -249,7 +262,11 @@ public class SalesReturnService {
         // 6. marketplace products: the seller does not keep what the customer got back
         takeBackFromSellers(saved, lines, toSave);
 
-        return toView(saved);
+        ReturnView view = toView(saved);
+        if (events != null) {
+            events.publishEvent(new ReturnRecorded(orderId, view.refundAmount(), method));
+        }
+        return view;
     }
 
     /**
@@ -350,7 +367,7 @@ public class SalesReturnService {
     @SuppressWarnings("unchecked")
     private OrderRow loadOrder(Long orderId) {
         List<Object[]> rows = em.createNativeQuery(
-                        "SELECT order_id, order_status, total_amount, tax_amount, created_at, customer_name, delivery_fee "
+                        "SELECT order_id, order_status, total_amount, tax_amount, created_at, customer_name, delivery_fee, coupon_discount "
                                 + "FROM orders WHERE order_id = ?1")
                 .setParameter(1, orderId)
                 .getResultList();
@@ -359,7 +376,7 @@ public class SalesReturnService {
         }
         Object[] r = rows.get(0);
         return new OrderRow(((Number) r[0]).longValue(), r[1] == null ? "" : r[1].toString(), money(r[2]), money(r[3]),
-                money(r[6]), time(r[4]), r[5] == null ? null : r[5].toString());
+                money(r[6]), time(r[4]), r[5] == null ? null : r[5].toString(), money(r[7]));
     }
 
     @SuppressWarnings("unchecked")
@@ -410,7 +427,7 @@ public class SalesReturnService {
             lineSum = lineSum.add(line.unitPrice().multiply(BigDecimal.valueOf(line.quantity())));
         }
         // the items plus tax (plus the delivery fee of an online order) must be what the customer paid
-        if (lineSum.add(order.tax()).add(order.deliveryFee()).subtract(order.total()).abs().compareTo(TOLERANCE) > 0) {
+        if (lineSum.add(order.tax()).add(order.deliveryFee()).subtract(order.coupon()).subtract(order.total()).abs().compareTo(TOLERANCE) > 0) {
             throw new ReturnException(HttpStatus.CONFLICT, "The amounts on sale #" + order.orderId()
                     + " do not add up (the items plus tax and delivery are not the total), so a refund cannot be worked "
                     + "out automatically. Please ask the developer to look at this sale.");
@@ -418,8 +435,27 @@ public class SalesReturnService {
         return lineSum.signum() == 0 ? BigDecimal.ZERO : order.tax().divide(lineSum, 8, RoundingMode.HALF_UP);
     }
 
-    private BigDecimal refundPerUnit(LineRow line, BigDecimal rate) {
-        return line.unitPrice().multiply(BigDecimal.ONE.add(rate)).setScale(2, RoundingMode.HALF_UP);
+    /** What the customer really paid for one: the price with tax, less its part of a coupon (share = 1 without one). */
+    private BigDecimal refundPerUnit(LineRow line, BigDecimal rate, BigDecimal share) {
+        return line.unitPrice().multiply(BigDecimal.ONE.add(rate)).multiply(share).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * The part of the items' price the customer paid after a coupon (1 without one): a coupon of Nu. 50 on Nu. 500 of
+     * items means every item was paid at 90%, so a return refunds 90% of its price. Delivery is never part of it.
+     */
+    private BigDecimal paidShare(OrderRow order, List<LineRow> lines, BigDecimal rate) {
+        if (order.coupon().signum() <= 0) {
+            return BigDecimal.ONE;
+        }
+        BigDecimal base = BigDecimal.ZERO;
+        for (LineRow line : lines) {
+            base = base.add(line.unitPrice().multiply(BigDecimal.valueOf(line.quantity())).multiply(BigDecimal.ONE.add(rate)));
+        }
+        if (base.signum() <= 0) {
+            return BigDecimal.ONE;
+        }
+        return base.subtract(order.coupon()).max(BigDecimal.ZERO).divide(base, 8, RoundingMode.HALF_UP);
     }
 
     private ReturnView toView(SalesReturn r) {

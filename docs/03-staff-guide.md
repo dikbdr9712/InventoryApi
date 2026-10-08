@@ -77,6 +77,14 @@ Needs the "Take returns and refund" permission.
 6. For a seller's product, the seller's share of the returned items is taken off their earnings automatically, and the
    seller is told.
 
+**Return requests** (Orders > Return requests, same permission): customers ask from their order page. Each request
+shows the order, the products, the reason and the customer's words.
+- **Approve**: tell the customer how the items come back (ready answers: our rider collects it, or bring it to the
+  shop). **Decline**: the customer sees your reason.
+- When the items are back, **Record the return** (the usual return window) does the refund. The request then shows
+  **Returned and refunded** and the customer is told the amount.
+- An order that used a coupon refunds only what was paid: each item's price less its part of the coupon.
+
 ## 3.3 Online orders: the order board
 
 **Orders > Orders** shows every online order from payment to the customer's door.
@@ -144,6 +152,21 @@ who packs).
 product name, description, category, cost price, selling price (or a markup %), MRP, opening stock,
 **Warn me when stock reaches** (the low-stock level; 0 = warn when sold out; empty = no warning), **Delivery size**
 (small, medium, large, bulky), barcode, supplier item code, and a photo (JPG, PNG, WEBP or GIF, up to 5 MB).
+
+- **Size or colour**: add each size or colour as its own product (full name: "Gho, size M"; its own price, stock and
+  photo), then **This is an option of** the main product, with a short **Option name** ("Size M"). The shop shows one
+  card and the choices. After saving, **Add another product** keeps the same main product, for the next size.
+- **More photos** (when editing a saved product): up to 4 more; the star makes one the main photo.
+
+### Offers: deals, featured products, coupons
+
+Needs **Run offers: deals and coupons** (Admin and Manager at the start).
+- On a product's page, **On the home page**: **Featured**, or **Deal** until a date and time (empty = until you change
+  it), or **Not shown**. Deals show under **Today's deals** with when they end; an ended deal disappears by itself.
+- **Products > Offers**: **coupon codes**. A code (DRUK10) takes a percent (with an optional most, for example at most
+  Nu. 50) or an amount off the items, from a smallest order, between optional start and end times, with uses in all and
+  per customer. A cancelled order gives its use back. DP DrukBazaars pays the discount: sellers keep their full share.
+  **Switch off** stops a code; a code never used can be deleted. The same page lists what is on the home page.
 
 ### Restock (stock that arrived)
 

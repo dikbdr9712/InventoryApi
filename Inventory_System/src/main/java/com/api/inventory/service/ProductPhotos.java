@@ -68,6 +68,11 @@ public class ProductPhotos {
         return "/uploads/" + name;
     }
 
+    /** Deletes a photo file this class made for the product (anything else is left alone). */
+    public void remove(Long itemId, String path) {
+        deleteOwn(itemId, path);
+    }
+
     private void deleteOwn(Long itemId, String previousPath) {
         if (previousPath == null || !previousPath.startsWith("/uploads/item-" + itemId + "-")) {
             return;

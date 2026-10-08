@@ -44,6 +44,17 @@ public class ItemMasterDTO {
 
     /** SMALL, MEDIUM, LARGE or BULKY: decides the delivery price and which riders can carry it. */
     private String deliverySize;
+
+    /** DEAL or FEATURED (shown on the home page); empty = not, or a deal that has ended. */
+    private String highlight;
+    private java.time.Instant dealEndsAt;
+
+    /** Size/colour options: the main product this one is an option of, and the option's short name. */
+    private Long variantOf;
+    private String variantName;
+
+    /** More photos (besides imagePath), on the product page only. */
+    private java.util.List<com.api.inventory.service.ItemPhotoService.PhotoView> photos;
 	public Long getItemId() {
 		return itemId;
 	}

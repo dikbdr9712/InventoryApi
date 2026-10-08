@@ -244,6 +244,10 @@ Flyway builds the database from `src/main/resources/db/migration`. Hibernate onl
 | V10 | The About page (`site_texts`, `team_members`) |
 | V11 | Low-stock warning level (`item_master.low_stock_threshold`) |
 | V12 | Pick up myself (`orders.fulfilment` DELIVERY/PICKUP, `order_packages.self_pickup`, `order_packages.handed_over_by`) |
+| V13 | Wishlist (`wishlist_items`) |
+| V14 | Saved addresses, back-in-stock alerts, return requests (`customer_addresses`, `stock_alerts`, `return_requests`, `return_request_items`) |
+| V15 | Deals, size/colour options, more photos (`item_master.highlight`, `deal_ends_at`, `variant_of`, `variant_name`; `item_photos`) |
+| V16 | Coupon codes (`coupons`, `coupon_redemptions`, `orders.coupon_code`, `orders.coupon_discount`) |
 
 Tables by area:
 
@@ -261,8 +265,8 @@ Tables by area:
 
 Rules:
 
-- **Never change a migration that has run** (V1 to V12): Flyway checks them on every start and the server refuses to
-  start. A change is always a new file, `V13__what_it_does.sql`.
+- **Never change a migration that has run** (V1 to V16): Flyway checks them on every start and the server refuses to
+  start. A change is always a new file, `V17__what_it_does.sql`.
 - Write migrations for MySQL 8 and check them on a scratch MySQL database before pushing (tests run on H2).
 - Times are stored in UTC; entities use `Instant`. Money is `DECIMAL`.
 - Data the app needs (roles, permissions, agreements, settings) is created by the app on start, not by hand.
@@ -312,9 +316,17 @@ All addresses start with `/api`. Answers are JSON. Errors: `{"status": 400, "err
 | **Marketplace** | `GET marketplace/settings` | Everyone |
 | | `GET marketplace/my-applications`, `POST marketplace/apply/seller`, `POST marketplace/apply/rider` (multipart) | Signed in |
 | | `marketplace/admin/...`: overview, settings, partners, seller/rider status, commission, balances, ledger, documents, adjustments, payouts | marketplace.manage |
+| **Shopping** | `GET/POST/DELETE wishlist[/{itemId}]`, `GET/POST/DELETE stock-alerts[/{itemId}]`, `GET/POST/PUT/DELETE addresses[/{id}]`, `POST addresses/{id}/default` | Signed in (own) |
+| | `GET/POST orders/{orderId}/return-request` (own completed orders) | Signed in (owner) |
+| | `GET return-requests?view=open\|closed\|all`, `POST return-requests/{id}/approve`, `/decline` `{note}` | sales.return |
+| | `POST coupons/check` `{code, items}` | Signed in |
+| | `GET/POST/PUT/DELETE coupons/admin[/{id}]` | offers.manage |
+| | `PUT items/{id}/highlight` `{highlight: DEAL\|FEATURED\|null, dealEndsAt}` | offers.manage |
+| | `POST items/{id}/photos`, `DELETE items/{id}/photos/{photoId}`, `POST .../photos/{photoId}/main` | items.manage |
+| | `GET sellers/{id}` (an approved seller's shop page), `GET share/products/{id}` (link preview HTML) | Everyone |
 | **Seller** | `GET seller/me`, `PUT seller/location` | seller.portal |
 | | `GET seller/packages`, `POST seller/packages/{id}/packed`, `POST seller/packages/{id}/handover` `{code}` (own package, code required) | seller.orders |
-| | `GET/POST/PUT seller/items` | seller.products |
+| | `GET/POST/PUT seller/items` (with `variantOf`, `variantName`), `GET/POST seller/items/{id}/photos`, `DELETE .../photos/{photoId}`, `POST .../photos/{photoId}/main` (own products) | seller.products |
 | | `GET seller/ledger` | seller.earnings |
 | **Driver** | `GET rider/me`, `POST rider/licence` | rider.portal |
 | | `GET rider/jobs`, `GET rider/my-jobs`, `POST rider/jobs/{id}/accept`, `/release`, `/pickup`, `/deliver` | rider.jobs |
@@ -374,6 +386,21 @@ The exact check of each address is the `@PreAuthorize` on its controller method;
   payment_intents, notifications, product_reviews, order_feedback, terms_acceptances, customers) and the email in
   pos_shifts, order_packages (packer, courier). Audit USER_DETAILS_CHANGED with old -> new; both addresses emailed.
   Not on yourself; an admin or users.manage holder only by an admin.
+- Coupons (`CouponService`): PERCENT (at most 90%, optional maxDiscount) or AMOUNT off the items subtotal (never
+  delivery), from minOrder, between startsAt and endsAt, usageLimit in all and perCustomerLimit; uses count only
+  orders that are not CANCELLED. Placing the order locks the coupon row (PESSIMISTIC_WRITE) and records a
+  `coupon_redemptions` row; order total = items + delivery - coupon. DP DrukBazaars pays it: packages and seller
+  earnings are unchanged. Returns: the amounts check counts the coupon, and each unit refunds its price x (1 + tax) x
+  (items paid / items before the coupon).
+- Options: `ProductOptions` (the main product must exist, not be an option, same seller; a product with options
+  cannot become one; an option needs a name). Orders, stock and returns treat each option as its own product.
+- Back in stock: `StockService.receive` / `putBack` publish `BackInStock` when stock goes from 0 to more;
+  `StockAlertService` (after commit, new transaction) tells everyone waiting once (BACK_IN_STOCK, with email).
+- Return requests: `ReturnRequestService` uses `SalesReturnService.returnable` (COMPLETED, within the window); one
+  open request per order; `SalesReturnService.createReturn` publishes `ReturnRecorded` and open requests become DONE
+  (customer told the refund).
+- Share page: `ShareController` returns HTML with Open Graph tags (name, price, description, photo from
+  `app.public-url`) and a refresh to /products/{id}; hidden products point to /products.
 - Low stock: when a sale, write-off or count brings a product from above its `low_stock_threshold` to at or below
   it, `stock.restock` staff (or the seller) get one LOW_STOCK notification.
 - Journal numbers: trimmed, upper case, 4 to 40 letters or digits, never accepted twice (checkout transfers and

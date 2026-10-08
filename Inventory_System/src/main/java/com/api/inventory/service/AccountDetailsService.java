@@ -33,6 +33,11 @@ public class AccountDetailsService {
             {"product_reviews", "user_email"},
             {"order_feedback", "user_email"},
             {"terms_acceptances", "user_email"},
+            {"wishlist_items", "user_email"},
+            {"customer_addresses", "user_email"},
+            {"stock_alerts", "user_email"},
+            {"return_requests", "user_email"},
+            {"coupon_redemptions", "user_email"},
             {"pos_shifts", "cashier_email"},
             {"order_packages", "packer_email"},
             {"order_packages", "courier_email"}

@@ -96,4 +96,40 @@ public class SellerController {
                                     @RequestPart(value = "image", required = false) MultipartFile image) {
         return sellerItems.update(packages.requireApprovedSeller(), id, form, image);
     }
+
+    // ---------- more photos of the seller's own products (at most 5 in all) ----------
+    private com.api.inventory.service.ItemPhotoService photos;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void setPhotos(com.api.inventory.service.ItemPhotoService photos) {
+        this.photos = photos;
+    }
+
+    @PreAuthorize("hasAuthority('seller.products')")
+    @GetMapping("/items/{id}/photos")
+    public List<com.api.inventory.service.ItemPhotoService.PhotoView> photos(@PathVariable Long id) {
+        sellerItems.ownProduct(packages.requireApprovedSeller(), id);
+        return photos.list(id);
+    }
+
+    @PreAuthorize("hasAuthority('seller.products')")
+    @PostMapping(value = "/items/{id}/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public List<com.api.inventory.service.ItemPhotoService.PhotoView> addPhoto(@PathVariable Long id, @RequestPart("photo") MultipartFile photo) {
+        sellerItems.ownProduct(packages.requireApprovedSeller(), id);
+        return photos.add(id, photo);
+    }
+
+    @PreAuthorize("hasAuthority('seller.products')")
+    @DeleteMapping("/items/{id}/photos/{photoId}")
+    public List<com.api.inventory.service.ItemPhotoService.PhotoView> removePhoto(@PathVariable Long id, @PathVariable Long photoId) {
+        sellerItems.ownProduct(packages.requireApprovedSeller(), id);
+        return photos.remove(id, photoId);
+    }
+
+    @PreAuthorize("hasAuthority('seller.products')")
+    @PostMapping("/items/{id}/photos/{photoId}/main")
+    public List<com.api.inventory.service.ItemPhotoService.PhotoView> mainPhoto(@PathVariable Long id, @PathVariable Long photoId) {
+        sellerItems.ownProduct(packages.requireApprovedSeller(), id);
+        return photos.makeMain(id, photoId);
+    }
 }

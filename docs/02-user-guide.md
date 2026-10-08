@@ -55,10 +55,22 @@ give you a temporary password; sign in with it and choose your own in **My profi
 
 ### A4. Find products
 
-- **Products** (top menu): all products. Search by name or code, filter by category, sort.
-- Each card shows the price (and the discount, if any), the stars from buyers, and whether it is in stock.
-- Tap a product for its page: photo, description, price, stock, **Sold by** (DP DrukBazaars or a local seller),
-  and **Customer reviews** from people who bought it.
+- **Search**: the magnifying glass at the top. Suggestions appear while you type (products and categories); Enter
+  shows every match.
+- **Products** (top menu): all products. Filter by category, **price** (from, to), **In stock**, **4 stars & up** and
+  **On offer**; sort by name, price, discount or best rated. The filters stay in the address, so you can share or
+  bookmark a filtered list.
+- Each card shows the price (and the discount, if any), the stars from buyers, whether it is in stock, and "**3
+  options**" for a product sold in sizes or colours.
+- Tap a product for its page: photos (tap the small ones, or the arrows), description, price, stock, the **choices**
+  (sizes, colours), **Sold by** (DP DrukBazaars, or a local seller: tap the name for their shop page), and
+  **Customer reviews** from people who bought it. Below: **You may also like** and **Recently viewed**.
+- **Deals**: products marked **Deal** (with when the deal ends) are on the home page under **Today's deals**.
+- **Share**: WhatsApp, Facebook, copy the link, or your phone's own share button. A shared link shows the product's
+  photo, name and price. **Ask us about it** opens WhatsApp with a message to the shop about that product.
+- **Wishlist**: the heart on a product saves it for later (sign in first). **My wishlist** is in the menu.
+- **Notify me**: on a sold-out product, tap **Notify me when it is back**. You get a notification and an email when
+  it is in stock again (once).
 - **Customer reviews** in the menu (or the footer) shows the shop's ratings for service, delivery and products.
 
 ### A5. Cart and checkout
@@ -68,13 +80,15 @@ give you a temporary password; sign in with it and choose your own in **My profi
 3. Under **How do you want to get it?** choose **Deliver to my door** (a driver brings it, with a delivery fee) or
    **Pick up myself** (free; you collect it, see A8). For pick up, the cart lists where each part of your order is
    collected, and no address is needed.
-4. Fill in **Your details** (for delivery, also the location and the address):
+4. Fill in **Your details**. If you saved addresses, choose one under **Deliver to** (the default one is chosen), or
+   **A new address** and, if you like, **Save this address for next time** as Home, Office or Other. For a new address:
    - your name and phone number (8 digits),
    - **Delivery location**: tap **Use my current location**, or choose your area from the list. This gives the
      exact delivery fee. Without it the distance is estimated.
    - the address (house, building, a landmark).
 5. Check the **Order summary**: items, delivery fee (one per package; each seller sends their own package) or
-   **Pick up myself: Free**, total.
+   **Pick up myself: Free**, total. Have a **coupon code**? Type it under the summary and tap **Apply**: what it
+   takes off shows, and the total is after it. A coupon takes money off the items, never the delivery.
 6. Tap **Continue to payment**. You must be signed in; if you are not, sign in and you come back here.
 7. On the payment page, **Pay with your bank account** is chosen. Tap **Place order and pay**.
 
@@ -159,8 +173,14 @@ may answer your review in public.
 
 ### A11. Returns
 
-Contact the shop (Contact page or phone). Staff can take items back within **7 days** of the sale. You get back
-exactly what you paid for those items.
+Once your whole order has reached you, its page shows **Returns**: tap **Request a return** (within **7 days** of
+ordering), choose the products and how many, say why (damaged, wrong item, changed my mind, another reason) and send.
+The shop answers (you get a notification and an email): **Approved** with how the items come back, or **Declined**
+with the reason. When the shop has the items, the return is recorded and you are told the refund: exactly what you
+paid for those items (after any coupon), never the delivery fee. You can also contact the shop.
+
+**Buy again**: on an order's page, puts its products in your cart again at today's prices (the ones still sold and
+in stock).
 
 ### A12. Contact the shop
 
@@ -169,8 +189,9 @@ an order). Staff answer by email. You can also call the number shown on the page
 
 ### A13. Your profile
 
-**My profile** (your initials, top right): your details, your latest order, and **Change password** (type your
-current password, then the new one twice).
+**My profile** (your initials, top right): your details, your latest order, **My addresses** (add, edit, make
+default, remove: up to 10, offered at checkout), and **Change password** (type your current password, then the new
+one twice). **My wishlist** is in the same menu.
 
 ### A14. Terms and privacy
 
@@ -229,7 +250,7 @@ After approval, **My shop** appears in the staff bar. It has these tabs:
 |---|---|
 | **Overview** | Packages waiting to be packed (and orders waiting for the customer to collect) and your earnings at a glance. Set your **Pickup point** in My shop so the delivery fee is exact. |
 | **Packages** | Paid orders for your products. Pack each one and tap **Packed**. **Customer collects** lists packed orders the customer picks up from you. |
-| **Products** | Add and edit your products: name, price, photo, stock, the delivery size, switch a product off. |
+| **Products** | Add and edit your products: name, price, photo (and up to 4 more photos once saved), stock, the delivery size, sizes and colours ("Option of"), switch a product off. |
 | **Money** | What you earned per delivered package, payouts received, and what you are still owed. |
 
 ### B3. Pack an order
@@ -246,6 +267,11 @@ You only see orders after they are paid. You never see other sellers' orders.
 2. When they come, ask for the 4-digit **collection code** on their order page. Tap **Customer collected it**, type
    the code, tap **Handed over**. A wrong code is refused: do not give the package.
 3. Your earning is recorded at once, as for a delivery.
+
+**Sizes and colours**: add each size or colour as its own product, named in full ("Kira, blue"), with its own price,
+stock and photo. In **Option of** choose the main product, and give a short **Option name** ("Blue"). Customers see one
+product with the choices. **Your shop page** (tap your name on any of your products) shows your shop, your rating
+from buyers and all your products: share its link.
 
 ### B4. Get paid
 

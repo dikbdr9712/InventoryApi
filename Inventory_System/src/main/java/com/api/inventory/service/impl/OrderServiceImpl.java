@@ -59,6 +59,8 @@ public class OrderServiceImpl implements OrderService {
 	@Autowired
 	private PackageService packageService;
 	@Autowired
+	private com.api.inventory.service.CouponService coupons;
+	@Autowired
 	private com.api.inventory.service.PosShiftService posShiftService;
 	@Autowired
 	private com.api.inventory.service.CustomerService customerService;
@@ -387,7 +389,11 @@ public class OrderServiceImpl implements OrderService {
 	    if (totalAmount.compareTo(BigDecimal.ZERO) <= 0) {
 	        throw new IllegalArgumentException("Your order total must be more than zero.");
 	    }
-	    
+
+	    // a coupon: checked against the items (locked, so its last use cannot be taken twice); DP DrukBazaars pays it
+	    com.api.inventory.service.CouponService.Quote coupon = dto.getCouponCode() == null || dto.getCouponCode().isBlank() ? null
+	            : coupons.checkForOrder(dto.getCouponCode(), dto.getCustomerEmail(), totalAmount);
+
 	    Order savedOrder = orderRepository.save(order);
 
 	    for (OrderItem item : orderItems) {
@@ -399,8 +405,14 @@ public class OrderServiceImpl implements OrderService {
 	    orderItemRepository.saveAll(orderItems);
 
 	    savedOrder.setDeliveryFee(deliveryFees);
-	    savedOrder.setTotalAmount(totalAmount.add(deliveryFees));
+	    BigDecimal off = coupon == null ? BigDecimal.ZERO : coupon.discount();
+	    savedOrder.setCouponCode(coupon == null ? null : coupon.code());
+	    savedOrder.setCouponDiscount(coupon == null ? null : off);
+	    savedOrder.setTotalAmount(totalAmount.add(deliveryFees).subtract(off));
 	    Order finalOrder = orderRepository.save(savedOrder);
+	    if (coupon != null) {
+	        coupons.redeem(coupon, finalOrder.getOrderId(), finalOrder.getCustomerEmail());
+	    }
 	    customerService.linkOrder(finalOrder); // the buyer's customer record and history
 	    notify.customer(finalOrder, new com.api.inventory.service.NotificationService.Note("ORDER_PLACED",
 	            "Order #" + finalOrder.getOrderId() + " received",

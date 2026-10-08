@@ -61,9 +61,13 @@ public class OrderResponseDTO {
 	private String paymentMethod;
 	private BigDecimal deliveryFee;
 	private String fulfilment; // DELIVERY or PICKUP
+	private String couponCode;          // the coupon used (empty = none)
+	private BigDecimal couponDiscount;  // what it took off the items
 
 	public String getCustomerName() { return customerName; }
 	public String getFulfilment() { return fulfilment; }
+	public String getCouponCode() { return couponCode; }
+	public BigDecimal getCouponDiscount() { return couponDiscount; }
 	public String getCustomerPhone() { return customerPhone; }
 	public String getAddress() { return address; }
 	public String getNote() { return note; }
@@ -88,6 +92,8 @@ public class OrderResponseDTO {
 	    dto.paymentMethod = order.getPaymentMethod();
 	    dto.deliveryFee = order.getDeliveryFee();
 	    dto.fulfilment = order.getFulfilment();
+	    dto.couponCode = order.getCouponCode();
+	    dto.couponDiscount = order.getCouponDiscount();
 	    return dto;
 	}
 

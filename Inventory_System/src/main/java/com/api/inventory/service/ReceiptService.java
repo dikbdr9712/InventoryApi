@@ -48,7 +48,8 @@ public class ReceiptService {
     public record Receipt(Long orderId, String source, LocalDateTime orderedAt, String customerName, String customerPhone,
                           String customerEmail, String address, String servedBy, List<Line> lines, BigDecimal itemsTotal,
                           BigDecimal savings, List<TaxLine> taxes, BigDecimal deliveryFee, BigDecimal total, PaymentInfo payment,
-                          boolean pickup) { // pickup: the customer collected it (no delivery)
+                          boolean pickup, // pickup: the customer collected it (no delivery)
+                          String couponCode, BigDecimal couponDiscount) { // a coupon taken off the items (online orders)
     }
 
     private final OrderAccess orderAccess;
@@ -103,7 +104,8 @@ public class ReceiptService {
         return new Receipt(order.getOrderId(), counter ? "POS" : "ONLINE", order.getCreatedAt(), order.getCustomerName(),
                 order.getCustomerPhone(), counter ? null : order.getCustomerEmail(), counter ? null : order.getAddress(), servedBy,
                 lines, itemsTotal, savings, taxes, counter ? null : order.getDeliveryFee(), order.getTotalAmount(),
-                counter ? counterPayment(order) : onlinePayment(order), !counter && order.isPickup());
+                counter ? counterPayment(order) : onlinePayment(order), !counter && order.isPickup(),
+                counter ? null : order.getCouponCode(), counter ? null : order.getCouponDiscount());
     }
 
     private static PaymentInfo counterPayment(Order order) {

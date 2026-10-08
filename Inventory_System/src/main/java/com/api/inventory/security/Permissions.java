@@ -65,6 +65,8 @@ public final class Permissions {
                     "Add people, switch accounts off, reset passwords, and change what each role may do.", true),
             new Definition("marketplace.manage", "Administration", "Run the marketplace",
                     "Approve sellers and riders, set commission and delivery fees, record payouts.", true),
+            new Definition("offers.manage", "Products and stock", "Run offers: deals and coupons",
+                    "Put products on the home page as deals or featured, and make coupon codes with their limits.", false),
             new Definition("site.manage", "Administration", "Edit the website pages",
                     "Change the About page: its texts, the live numbers, and the team members with their photos.", false),
             // Marketplace sellers (their own shop only, never other sellers' data)
@@ -123,7 +125,7 @@ public final class Permissions {
         d.put(ADMIN, ADMIN_KEYS);
         d.put("MANAGER", Set.of("pos.use", "pos.discount", "pos.shifts.manage", "sales.return", "orders.view", "orders.fulfil",
                 "orders.assign", "payments.verify", "items.manage", "stock.restock", "messages.view", "reports.view", "customers.view", "customers.manage",
-                "reviews.manage"));
+                "reviews.manage", "offers.manage"));
         d.put("CONTROLLER", Set.of("pos.use", "orders.view", "orders.fulfil", "stock.restock", "messages.view", "customers.view"));
         d.put(SELLER, SELLER_ALL);
         d.put(RIDER, RIDER_ALL);
@@ -146,11 +148,12 @@ public final class Permissions {
      * Permissions added to the catalog after a version: roles that were already set up get them ONCE (only those in
      * the role's defaults), so a new feature reaches existing roles without overwriting what an admin chose.
      */
-    public static final int CATALOG_VERSION = 4;
+    public static final int CATALOG_VERSION = 5;
     public static final Map<Integer, Set<String>> ADDED_IN = Map.of(
             2, Set.of("customers.view", "customers.manage"),
             3, Set.of("orders.assign"),
-            4, Set.of("reviews.manage"));
+            4, Set.of("reviews.manage"),
+            5, Set.of("offers.manage"));
 
     /** Default permissions of a role (empty for unknown roles). For tests and first-time setup only. */
     public static Set<String> defaultsFor(String role) {

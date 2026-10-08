@@ -58,6 +58,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/contact").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/reviews/products/*", "/api/reviews/summary", "/api/reviews/service").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/site/about", "/api/site/info").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/share/**").permitAll()   // link previews for WhatsApp, Facebook
+                        .requestMatchers(HttpMethod.GET, "/api/sellers/*").permitAll()   // a seller's shop page
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // everything else in the API needs a signed-in person (and then its own permission)
                         .requestMatchers("/api/**").authenticated()

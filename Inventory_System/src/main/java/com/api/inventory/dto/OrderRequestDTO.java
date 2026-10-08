@@ -22,6 +22,7 @@ public class OrderRequestDTO {
     // Primary format: list of items (used by cart)
     private List<Item> items;
     private String fulfilment; // DELIVERY (default) or PICKUP: the customer collects it
+    private String couponCode; // optional: a coupon for the items (DRUK10)
     
     // Fallback fields for single-item "Buy Now" flow
     private Long itemId;
@@ -67,6 +68,14 @@ public class OrderRequestDTO {
 
     public void setTotalAmount(BigDecimal totalAmount) {
         this.totalAmount = totalAmount;
+    }
+
+    public String getCouponCode() {
+        return couponCode;
+    }
+
+    public void setCouponCode(String couponCode) {
+        this.couponCode = couponCode;
     }
 
     public String getFulfilment() {

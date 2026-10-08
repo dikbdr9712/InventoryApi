@@ -787,3 +787,27 @@ and points to the docs. Keep the guides in step with the screens: change the doc
 - Replaced the same day by the owner's own logo (1254 x 1254, made in Canva) in Images/website-logo.png, and their
   favicon.ico (16 to 256). From it: logo-112.png (112 px, 25 KB; it had been the full 1.9 MB picture, shown on every
   page) and the app icons in public/icons. The SVGs in brand/ are from the earlier logo.
+
+## 39. Shop features like Flipkart and Meesho (8 Oct 2026)
+- Phase 1 (shopping): header search with suggestions (Components/search-box), product list filters in the address (q,
+  category, sort incl. best rated, min, max, stock, rating=4, offer), switched-off products hidden from shoppers;
+  wishlist (V13 wishlist_items, /api/wishlist, heart on cards and pages, /wishlist, My wishlist in the menus);
+  share (WhatsApp, Facebook, copy, native share) through /api/share/products/{id} (Open Graph preview page) and
+  "Ask us about it" on WhatsApp; "You may also like" and "Recently viewed" (localStorage) rows; the product page now
+  reloads when its id changes. ItemService.catalog() keeps the product list 2 minutes for these.
+- Phase 2: saved addresses (V14 customer_addresses, /api/addresses, Deliver to at checkout + save the new one, My
+  addresses on the profile); back-in-stock alerts (stock_alerts, Notify me; StockService publishes BackInStock,
+  StockAlertService tells once after commit); return requests (return_requests + items; customer asks from the order
+  page within the return window, staff approve/decline in Orders > Return requests, Record the return makes it DONE and
+  tells the refund); seller shop pages (/shop/{id}, GET /api/sellers/{id} with rating from their product reviews).
+- Phase 3: permission offers.manage "Run offers: deals and coupons" (catalog version 5, Admin and Manager); deals and
+  featured (V15 item_master.highlight, deal_ends_at; PUT /api/items/{id}/highlight; home page Today's deals with end
+  times, Featured); more photos (item_photos, up to 4 more, make main; photo manager in both product forms; gallery);
+  size/colour options (variant_of, variant_name; ProductOptions rules; one card with "N options", choice chips);
+  coupons (V16 coupons, coupon_redemptions, orders.coupon_code/coupon_discount; cart Apply, order page and receipt
+  lines; Products > Offers page). DP DrukBazaars pays coupons; refunds use the paid share.
+- Extras: Buy again on the order page; Ask us about it (WhatsApp); link previews for shared products.
+- New emails tables added to AccountDetailsService's move list (wishlist, addresses, alerts, return requests,
+  coupon redemptions).
+- Tests: ShopListsTest, ShopCareTest, ShopOffersTest (photos in the test database: app.files.store=database). 61 in all.
+  V13-V16 checked on a scratch MySQL database. Browser checked with fake data for every screen.

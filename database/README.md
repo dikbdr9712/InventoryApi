@@ -12,6 +12,10 @@ The tables are defined in **`Inventory_System/src/main/resources/db/migration/`*
 | `../Inventory_System/src/main/resources/db/migration/V2__stock_batches.sql` | Stock by batch: `stock_batches`, `order_item_batches`, `order_items.unit_cost` | Runs **by itself** (new and upgraded databases) |
 | `../Inventory_System/src/main/resources/db/migration/V3__sessions_in_database.sql` | Sign-ins kept in the database (`SPRING_SESSION`, `SPRING_SESSION_ATTRIBUTES`), so a restart signs nobody out | Runs **by itself** |
 | `../Inventory_System/src/main/resources/db/migration/V4__bank_payments.sql` | Paying from a bank account: `bank_payments` (last 4 digits only) and `payment_events` | Runs **by itself** |
+| `../Inventory_System/src/main/resources/db/migration/V16__coupons.sql` | Coupon codes: `coupons`, `coupon_redemptions`, `orders.coupon_code` and `coupon_discount` | Runs **by itself** |
+| `../Inventory_System/src/main/resources/db/migration/V15__deals_photos_options.sql` | Deals and featured products, size/colour options (`item_master.highlight`, `deal_ends_at`, `variant_of`, `variant_name`), more photos (`item_photos`) | Runs **by itself** |
+| `../Inventory_System/src/main/resources/db/migration/V14__addresses_alerts_returns.sql` | Saved addresses, back-in-stock alerts, return requests | Runs **by itself** |
+| `../Inventory_System/src/main/resources/db/migration/V13__wishlist.sql` | The wishlist: `wishlist_items` | Runs **by itself** |
 | `../Inventory_System/src/main/resources/db/migration/V12__self_pickup.sql` | Pick up myself: `orders.fulfilment` (DELIVERY or PICKUP), `order_packages.self_pickup` and `handed_over_by` | Runs **by itself** |
 | `../Inventory_System/src/main/resources/db/migration/V11__low_stock_warning.sql` | Low-stock warnings: `item_master.low_stock_threshold` ("Warn me when stock reaches") | Runs **by itself** |
 | `../Inventory_System/src/main/resources/db/migration/V10__about_page.sql` | The About page managed by staff: `site_texts` (introduction, mission, vision, live numbers on or off) and `team_members` (starts with the two people on the page) | Runs **by itself** |

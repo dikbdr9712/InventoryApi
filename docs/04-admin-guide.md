@@ -54,6 +54,7 @@ can do at the start:
 | See customers | ✓ | ✓ | ✓ | | | |
 | Edit customer details | ✓ | ✓ | | | | |
 | Manage reviews | ✓ | ✓ | | | | |
+| Run offers: deals and coupons | ✓ | ✓ | | | | |
 | Manage users and roles | ✓ | | | | | |
 | Run the marketplace | ✓ | | | | | |
 | Edit the website pages | ✓ | | | | | |

@@ -62,6 +62,11 @@ flowchart LR
 - Follow the order step by step, see the driver, get the delivery code, download or print the receipt.
 - Install DP DrukBazaars as an **app** on the phone or computer, straight from the website (no app store): see the
   User guide, A15.
+- Shopping like the big online shops: search with suggestions, filters (price, in stock, 4 stars and up, on offer),
+  a **wishlist**, **share** to WhatsApp or Facebook (with a preview of the product), "You may also like" and
+  "Recently viewed", **sizes and colours** of a product, more photos, **deals** and featured products on the home page,
+  **coupon codes**, **saved addresses**, "**Notify me**" when a sold-out product is back, **return requests** from the
+  order page, **Buy again**, and a page for each seller's shop.
 - Rate each product, the service and the delivery.
 - Notifications (the bell at the top), forgotten password by email or text message, change password.
 

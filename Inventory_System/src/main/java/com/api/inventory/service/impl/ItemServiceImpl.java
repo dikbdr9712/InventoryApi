@@ -36,6 +36,9 @@ public class ItemServiceImpl implements ItemService {
     @Autowired
     private com.api.inventory.service.ProductPhotos productPhotos;
 
+    @Autowired
+    private com.api.inventory.service.ProductOptions productOptions;
+
     @Override
     @Transactional
     public ItemMasterDTO createItem(ItemMasterDTO dto) {
@@ -93,6 +96,13 @@ public class ItemServiceImpl implements ItemService {
 
     private ItemMasterDTO toDTO(ItemMaster item, InventoryStock stock) {
         ItemMasterDTO dto = new ItemMasterDTO();
+        // the home page: a deal that has ended is shown as nothing
+        boolean ended = ItemMaster.DEAL.equals(item.getHighlight()) && item.getDealEndsAt() != null
+                && item.getDealEndsAt().isBefore(java.time.Instant.now());
+        dto.setHighlight(ended ? null : item.getHighlight());
+        dto.setDealEndsAt(ended ? null : item.getDealEndsAt());
+        dto.setVariantOf(item.getVariantOf());
+        dto.setVariantName(item.getVariantName());
         
         // Item fields
         dto.setItemId(item.getItemId());
@@ -271,6 +281,8 @@ public class ItemServiceImpl implements ItemService {
 	    );
 	    item.setTaxRate(dto.getTaxRate() != null ? dto.getTaxRate() : BigDecimal.ZERO);
 	    item.setIsActive(true); // Default to active
+	    // a size or colour of another product (empty = a product of its own)
+	    productOptions.apply(item, dto.getVariantOf(), dto.getVariantName());
 
 	    // ✅ Generate temporary SKU, save, then update with permanent SKU
 	    item.setSku("TEMP-" + System.currentTimeMillis());
@@ -331,6 +343,9 @@ public class ItemServiceImpl implements ItemService {
 	    if (dto.getDeliverySize() != null) {
 	        item.setDeliverySize(com.api.inventory.entity.DeliverySize.parse(dto.getDeliverySize()));
 	    }
+
+	    // a size or colour of another product (empty = a product of its own)
+	    productOptions.apply(item, dto.getVariantOf(), dto.getVariantName());
 
 	    // New photo: saved under its own name, and this product's previous photo file is removed
 	    item.setImagePath(productPhotos.save(item.getItemId(), imageFile, item.getImagePath()));
