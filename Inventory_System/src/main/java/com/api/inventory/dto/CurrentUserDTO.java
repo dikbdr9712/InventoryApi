@@ -23,6 +23,12 @@ public class CurrentUserDTO {
     private String role;
 	private Long roleId; 
 
+	/** Their profile photo (/uploads/user-...); empty = initials. */
+	private String photoPath;
+
+	public String getPhotoPath() { return photoPath; }
+	public void setPhotoPath(String photoPath) { this.photoPath = photoPath; }
+
 	/** What this person may do (from their role, in the database). The screens show and hide tools with it. */
 	private java.util.List<String> permissions = java.util.List.of();
 

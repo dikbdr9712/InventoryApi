@@ -55,6 +55,10 @@ public class User {
     @Column(name = "password_changed_at")
     private java.time.Instant passwordChangedAt;
 
+    /** Their own profile photo (/uploads/user-12-ab12cd34.jpg); empty = their initials are shown. */
+    @Column(name = "photo_path", length = 255)
+    private String photoPath;
+
     /** A number stored in the session at sign-in: a later password change makes older sessions invalid. */
     public long passwordStamp() {
         return passwordChangedAt == null ? 0L : passwordChangedAt.toEpochMilli();

@@ -56,6 +56,12 @@ public class AuthController {
     @Autowired
     private com.api.inventory.service.CustomerService customerService;
 
+    @Autowired
+    private com.api.inventory.service.AccountDetailsService accountDetails;
+
+    @Autowired
+    private com.api.inventory.service.ProductPhotos photos;
+
     @PostMapping("/signup")
     @org.springframework.transaction.annotation.Transactional // the account and the terms acceptance are saved together
     public ResponseEntity<?> signup(@RequestBody SignupRequest request, HttpServletRequest httpRequest) {
@@ -141,6 +147,68 @@ public class AuthController {
         if (session != null) {
             session.setAttribute("userRole", user.getRole().getName());
         }
+        return ResponseEntity.ok(toDto(user));
+    }
+
+    // ================= My profile: their own details and photo =================
+
+    /** currentPassword: needed only to change the email (it is what the person signs in with). */
+    public record ProfileChange(String name, String email, String phone, String currentPassword) {
+    }
+
+    /**
+     * The signed-in person changes their own name, phone and email (the same checks as when staff do it: a valid,
+     * unused email; an 8-digit, unused phone). Their orders and the rest move with a new email, and they stay signed in.
+     */
+    @PutMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    @org.springframework.transaction.annotation.Transactional
+    public ResponseEntity<?> updateMe(@RequestBody ProfileChange body, HttpServletRequest request) {
+        User user = userRepository.findByEmail(CurrentUser.email()).orElse(null);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Please sign in.");
+        }
+        String newEmail = body == null || body.email() == null ? user.getEmail() : body.email().trim();
+        if (!newEmail.equalsIgnoreCase(user.getEmail())
+                && (body.currentPassword() == null || !passwordEncoder.matches(body.currentPassword(), user.getPassword()))) {
+            return badRequest("To change your email, type your current password.");
+        }
+        String phone = body == null || body.phone() == null ? user.getPhone() : body.phone();
+        String name = body == null || body.name() == null ? user.getName() : body.name();
+        accountDetails.change(user, new com.api.inventory.service.AccountDetailsService.Change(name, newEmail, phone), true);
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.setAttribute("userEmail", user.getEmail()); // this browser stays signed in with the new email
+        }
+        return ResponseEntity.ok(toDto(user));
+    }
+
+    /** Their profile photo: JPG, PNG, WEBP or GIF, at most 5 MB (the website sends it small and square). */
+    @PostMapping(value = "/me/photo", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> uploadPhoto(@RequestPart("photo") org.springframework.web.multipart.MultipartFile photo) {
+        User user = userRepository.findByEmail(CurrentUser.email()).orElse(null);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Please sign in.");
+        }
+        if (photo == null || photo.isEmpty()) {
+            return badRequest("Choose a photo.");
+        }
+        user.setPhotoPath(photos.saveUserPhoto(user.getId(), photo, user.getPhotoPath()));
+        userRepository.save(user);
+        return ResponseEntity.ok(toDto(user));
+    }
+
+    @DeleteMapping("/me/photo")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> removePhoto() {
+        User user = userRepository.findByEmail(CurrentUser.email()).orElse(null);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Please sign in.");
+        }
+        photos.removeUserPhoto(user.getId(), user.getPhotoPath());
+        user.setPhotoPath(null);
+        userRepository.save(user);
         return ResponseEntity.ok(toDto(user));
     }
 
@@ -243,6 +311,7 @@ public class AuthController {
     private CurrentUserDTO toDto(User user) {
         CurrentUserDTO dto = new CurrentUserDTO(user.getEmail(), user.getName(), user.getPhone(), user.getRole().getName());
         dto.setPermissions(access.permissionsOf(user.getRole().getName()).stream().sorted().toList());
+        dto.setPhotoPath(user.getPhotoPath());
         return dto;
     }
 

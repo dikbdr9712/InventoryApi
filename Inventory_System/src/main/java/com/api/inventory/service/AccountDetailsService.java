@@ -59,9 +59,15 @@ public class AccountDetailsService {
     public record Change(String name, String email, String phone) {
     }
 
-    /** Returns what changed, in words ("email", "phone", "name"); empty when nothing did. */
+    /** Returns what changed, in words ("email", "phone", "name"); empty when nothing did. Changed by staff. */
     @Transactional
     public List<String> change(User user, Change in) {
+        return change(user, in, false);
+    }
+
+    /** byThemselves: the person changed their own details (My profile), not staff. */
+    @Transactional
+    public List<String> change(User user, Change in, boolean byThemselves) {
         if (in == null) {
             throw new IllegalArgumentException("Fill in the name, email and phone.");
         }
@@ -126,7 +132,8 @@ public class AccountDetailsService {
 
         if (emailChanged && !onlyCase) {
             String text = "Hello " + user.getName() + ",\n\n"
-                    + "The email you sign in to DP DrukBazaars with was changed by our staff\n"
+                    + (byThemselves ? "You changed the email you sign in to DP DrukBazaars with\n"
+                            : "The email you sign in to DP DrukBazaars with was changed by our staff\n")
                     + "from " + oldEmail + "\nto   " + newEmail + "\n\n"
                     + "Sign in with the new email and your usual password. Your orders and everything else stay in your account.\n"
                     + "If you did not ask for this, contact us straight away.\n\nDP DrukBazaars";

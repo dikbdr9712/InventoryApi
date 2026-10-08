@@ -51,6 +51,20 @@ public class ProductPhotos {
      * or the previous path when no file was sent.
      */
     public String save(Long itemId, MultipartFile image, String previousPath) {
+        return saveAs("item-" + itemId + "-", image, previousPath);
+    }
+
+    /** A person's profile photo: user-12-3fa9c1d2.jpg. Their previous photo file is removed. */
+    public String saveUserPhoto(Long userId, MultipartFile image, String previousPath) {
+        return saveAs("user-" + userId + "-", image, previousPath);
+    }
+
+    /** Deletes a profile photo file made for this person (anything else is left alone). */
+    public void removeUserPhoto(Long userId, String path) {
+        deleteOwn("user-" + userId + "-", path);
+    }
+
+    private String saveAs(String prefix, MultipartFile image, String previousPath) {
         if (image == null || image.isEmpty()) {
             return previousPath;
         }
@@ -58,23 +72,23 @@ public class ProductPhotos {
         String ext = extensionOf(image);
         byte[] random = new byte[4];
         RANDOM.nextBytes(random);
-        String name = "item-" + itemId + "-" + HexFormat.of().formatHex(random) + "." + ext;
+        String name = prefix + HexFormat.of().formatHex(random) + "." + ext;
         try {
             store.put(FileStore.PUBLIC, name, image.getBytes(), FileStore.typeOf(name));
         } catch (IOException e) {
             throw new IllegalStateException("The photo could not be saved. Please try again.");
         }
-        deleteOwn(itemId, previousPath);
+        deleteOwn(prefix, previousPath);
         return "/uploads/" + name;
     }
 
     /** Deletes a photo file this class made for the product (anything else is left alone). */
     public void remove(Long itemId, String path) {
-        deleteOwn(itemId, path);
+        deleteOwn("item-" + itemId + "-", path);
     }
 
-    private void deleteOwn(Long itemId, String previousPath) {
-        if (previousPath == null || !previousPath.startsWith("/uploads/item-" + itemId + "-")) {
+    private void deleteOwn(String prefix, String previousPath) {
+        if (previousPath == null || !previousPath.startsWith("/uploads/" + prefix)) {
             return;
         }
         String file = previousPath.substring("/uploads/".length());
