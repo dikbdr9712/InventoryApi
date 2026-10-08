@@ -784,3 +784,6 @@ and points to the docs. Keep the guides in step with the screens: change the doc
   in the logo's own yellow. The rest of the logo (ring, ornaments, leaves) is unchanged.
 - Made from public/Images/website-logo.png (also the unused copy "Websites logo(Online).png"): logo-112.png (header,
   footer, sign-in, counter, receipts), favicon.ico (16/32/48) and the app icons in public/icons.
+- Replaced the same day by the owner's own logo (1254 x 1254, made in Canva) in Images/website-logo.png, and their
+  favicon.ico (16 to 256). From it: logo-112.png (112 px, 25 KB; it had been the full 1.9 MB picture, shown on every
+  page) and the app icons in public/icons. The SVGs in brand/ are from the earlier logo.
