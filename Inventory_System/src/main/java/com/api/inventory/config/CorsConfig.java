@@ -21,7 +21,7 @@ public class CorsConfig {
      * https://drukbazaars.bt,https://www.drukbazaars.bt (not needed when the site and the API share one address behind Nginx).
      * The default covers a developer's computer: any local port, plus two local network addresses.
      */
-    @Value("${app.cors.allowed-origins:http://localhost:[*],http://127.0.0.1:[*],http://192.168.123.30:4200,http://192.168.137.1:4200}")
+    @Value("${app.cors.allowed-origins:http://localhost:[*],http://127.0.0.1:[*],http://192.168.123.30:4200,http://192.168.137.1:4200, https://dpdrukbazaars.vercel.app}")
     private List<String> allowedOrigins;
 
     @Bean
